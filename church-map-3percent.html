@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>서울 교회 지도 (3% 모델 적용)</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+<style>
+html,body{margin:0;height:100%}
+#map{height:100%}
+.topbar{
+position:absolute;
+z-index:1000;
+background:#fff;
+padding:10px;
+border-radius:10px;
+box-shadow:0 4px 12px rgba(0,0,0,.15);
+margin:10px;
+font-size:14px;
+}
+input{margin:5px 0;}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+<div><b>서울 교회 지도 (3% 모델)</b></div>
+<div>
+교회 데이터:
+<input type="file" id="churchFile" accept=".json" />
+</div>
+<div>
+인구 데이터:
+<input type="file" id="popFile" accept=".csv" />
+</div>
+<div id="status">대기 중…</div>
+</div>
+
+<div id="map"></div>
+
+<script>
+const RATE = 0.03; // 🔥 3% 가정
+
+const map = L.map('map').setView([37.55,127],11);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+maxZoom:19,
+attribution:'© OpenStreetMap'
+}).addTo(map);
+
+const cluster = L.markerClusterGroup();
+map.addLayer(cluster);
+
+let churches = [];
+let populationMap = new Map();
+
+function setStatus(msg){
+document.getElementById("status").innerText = msg;
+}
+
+function normalize(it){
+return {
+name: it.name,
+country: it.country,
+city: it.city,
+district: it.district,
+lat: Number(it.lat),
+lng: Number(it.lng),
+address: it.address
+};
+}
+
+async function render(){
+cluster.clearLayers();
+
+const valid = churches.map(normalize)
+.filter(x=>x.lat && x.lng);
+
+if(!valid.length) return;
+
+const countByDistrict = {};
+valid.forEach(it=>{
+const key = `${it.country}|${it.city}|${it.district}`;
+countByDistrict[key] = (countByDistrict[key]||0)+1;
+});
+
+valid.forEach(it=>{
+const key = `${it.country}|${it.city}|${it.district}`;
+const pop = populationMap.get(key);
+
+let peoplePerChurch = null;
+
+if(pop){
+const potential = pop * RATE;
+peoplePerChurch = potential / countByDistrict[key];
+}
+
+const popup = `
+<b>${it.name}</b><br/>
+${it.city} / ${it.district}<br/>
+${it.address}<br/>
+${pop?`구 인구: ${pop.toLocaleString()}<br/>`:''}
+${peoplePerChurch?
+`교회당 인구 (3% 가정): ${Math.round(peoplePerChurch).toLocaleString()}`
+:'교회당 인구: 계산 불가'}
+`;
+
+cluster.addLayer(
+L.marker([it.lat,it.lng]).bindPopup(popup)
+);
+});
+
+setStatus("렌더 완료 ✅");
+}
+
+document.getElementById("churchFile").addEventListener("change",async e=>{
+const file = e.target.files[0];
+if(!file) return;
+const text = await file.text();
+churches = JSON.parse(text);
+setStatus("교회 데이터 로드 완료");
+render();
+});
+
+document.getElementById("popFile").addEventListener("change",async e=>{
+const file = e.target.files[0];
+if(!file) return;
+
+const text = await file.text();
+const rows = text.split("\n").map(r=>r.split(","));
+const header = rows[0];
+
+const ci = header.indexOf("country");
+const cityi = header.indexOf("city");
+const di = header.indexOf("district");
+const pi = header.indexOf("population");
+
+populationMap.clear();
+
+for(let i=1;i<rows.length;i++){
+if(rows[i].length<4) continue;
+const key = `${rows[i][ci]}|${rows[i][cityi]}|${rows[i][di]}`;
+populationMap.set(key,Number(rows[i][pi]));
+}
+
+setStatus("인구 데이터 로드 완료");
+render();
+});
+</script>
+
+</body>
+</html>
