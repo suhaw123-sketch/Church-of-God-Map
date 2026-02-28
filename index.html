@@ -253,8 +253,18 @@ function fmt(n){
   if(n==null || !Number.isFinite(n)) return '-';
   return n.toLocaleString();
 }
-
+  
 /* ========= CSV Parser ========= */
+
+  function normalizeDelimiter(text){
+  const s = text.trim();
+  const firstLine = s.split(/\r?\n/)[0] || "";
+  if(!firstLine.includes(',')){
+    return s.replace(/\s+/g, ',');
+  }
+  return s;
+}
+  
 function parseCSV(text){
   const rows=[]; let cur='', inQuotes=false; const out=[];
   for(let i=0;i<text.length;i++){
@@ -377,7 +387,8 @@ async function loadWorld(){
 
     const rows = parseCSV(churchText);
     allItems = rowsToObjects(rows);
-
+    
+churchText = normalizeDelimiter(churchText);
     // population.csv (optional)
     try{
       let popRes = await fetch("./data/population_admin.csv",{cache:'no-store'});
@@ -700,4 +711,5 @@ loadWorld();
 </script>
 </body>
 </html>
+
 
