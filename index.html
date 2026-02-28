@@ -13,703 +13,157 @@
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
 <style>
-  :root{
-    --header-h: 64px;
-    --side-w: 360px;
-    --border: #e6e6e6;
-    --muted: #6b7280;
-    --bg: #ffffff;
-    --bg2: #fafafa;
-  }
-
-  html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
-  header{
-    position:fixed; top:0; left:0; right:0;
-    height: var(--header-h);
-    background:var(--bg);
-    z-index:1000;
-    border-bottom:1px solid var(--border);
-    display:flex;
-    align-items:center;
-    gap:12px;
-    padding: 0 12px;
-  }
-  header b{font-size:16px;}
-  .status{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-
-  #wrap{
-    position:absolute;
-    top: var(--header-h);
-    bottom:0; left:0; right:0;
-    display:flex;
-    min-height:0;
-  }
-
-  #map{
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  aside{
-    width: var(--side-w);
-    border-left:1px solid var(--border);
-    background:var(--bg);
-    display:flex;
-    flex-direction:column;
-    min-height:0;
-  }
-
-  .panel{
-    padding: 10px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg);
-    display:grid;
-    gap:8px;
-  }
-
-  .row{display:flex; gap:8px; align-items:center;}
-  .row > *{flex:1}
-
-  input, select, button{
-    font: inherit;
-    padding: 9px 10px;
-    border:1px solid var(--border);
-    border-radius: 10px;
-    background:#fff;
-    outline:none;
-  }
-  input:focus, select:focus{border-color:#c7d2fe; box-shadow:0 0 0 3px rgba(99,102,241,.12);}
-  button{cursor:pointer; background:var(--bg2);}
-  button:hover{filter:brightness(.98);}
-  button.active{border-color:#111827; background:#111827; color:#fff;}
-  .btns{display:flex; gap:8px;}
-  .btns button{flex:1}
-
-  .legend{display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:12px; color:var(--muted);}
-  .chip{display:inline-flex; gap:6px; align-items:center; padding:4px 8px; border:1px solid var(--border); border-radius:999px; background:#fff;}
-  .dot{width:10px; height:10px; border-radius:50%;}
-  .dot.green{background:#16a34a;}
-  .dot.gold{background:#f59e0b;}
-  .dot.blue{background:#2563eb;}
-
-  .list{
-    padding: 0;
-    margin: 0;
-    list-style:none;
-    overflow:auto;
-    flex:1 1 auto;
-    background: #fff;
-  }
-  .item{
-    padding: 10px;
-    border-bottom:1px solid var(--border);
-    cursor:pointer;
-    display:grid;
-    gap:4px;
-  }
-  .item:hover{background: var(--bg2);}
-  .title{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    font-weight:700;
-    font-size:14px;
-    line-height:1.2;
-  }
-  .meta{color:var(--muted); font-size:12px; line-height:1.25;}
-  .badge{
-    font-size:11px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    border:1px solid var(--border);
-    color:#111827;
-    background:#fff;
-    white-space:nowrap;
-  }
-
-  /* ==== Marker Icons (sparkle) ==== */
-  .micon{
-    width: 28px;
-    height: 28px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    border-radius: 999px;
-    background: rgba(255,255,255,.9);
-    border: 1px solid rgba(0,0,0,.12);
-    box-shadow: 0 8px 18px rgba(0,0,0,.12);
-  }
-  .micon .glyph{
-    font-size: 18px;
-    line-height: 1;
-    transform: translateY(-0.5px);
-  }
-  .sparkle{
-    animation: sparkle 1.6s ease-in-out infinite;
-    text-shadow: 0 0 6px rgba(255,255,255,.8);
-  }
-  .green{ color:#16a34a; text-shadow: 0 0 10px rgba(34,197,94,.55), 0 0 4px rgba(34,197,94,.35); }
-  .gold{ color:#f59e0b; text-shadow: 0 0 10px rgba(245,158,11,.55), 0 0 4px rgba(245,158,11,.35); }
-  .blue{ color:#2563eb; text-shadow: 0 0 10px rgba(37,99,235,.55), 0 0 4px rgba(37,99,235,.35); }
-
-  @keyframes sparkle{
-    0%,100%{filter:brightness(1); transform: scale(1);}
-    50%{filter:brightness(1.25); transform: scale(1.06);}
-  }
-
-  /* Mobile */
-  .toggleSide{
-    display:none;
-    margin-left:auto;
-  }
-  @media (max-width: 900px){
-    :root{ --side-w: 320px; }
-  }
-  @media (max-width: 780px){
-    aside{position:fixed; right:0; top: var(--header-h); bottom:0; transform: translateX(0); transition:.2s ease; width:min(92vw,360px); z-index:1200;}
-    aside.closed{transform: translateX(100%);}
-    .toggleSide{display:inline-flex;}
-  }
+html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
+header{position:fixed;top:0;left:0;right:0;height:60px;background:#fff;border-bottom:1px solid #eee;display:flex;align-items:center;padding:0 12px;z-index:1000}
+#wrap{position:absolute;top:60px;bottom:0;left:0;right:0;display:flex}
+#map{flex:1}
+aside{width:360px;border-left:1px solid #eee;background:#fff;display:flex;flex-direction:column}
+.panel{padding:10px;border-bottom:1px solid #eee;display:grid;gap:8px}
+input,select,button{padding:8px;border:1px solid #ddd;border-radius:8px}
+.list{flex:1;overflow:auto;list-style:none;margin:0;padding:0}
+.item{padding:10px;border-bottom:1px solid #eee;cursor:pointer}
+.item:hover{background:#fafafa}
 </style>
 </head>
 
 <body>
 <header>
-  <b>전세계 하나님의교회 지도</b>
-  <span class="status" id="status">자동 로드 중...</span>
-  <button class="toggleSide" id="toggleSide" type="button">목록</button>
+<b>전세계 하나님의교회 지도</b>
+<span id="status" style="margin-left:10px;color:#666;font-size:13px;">로드 중...</span>
 </header>
 
 <div id="wrap">
-  <div id="map"></div>
+<div id="map"></div>
 
-  <aside id="side" class="">
-    <div class="panel">
-      <div class="row">
-        <input id="q" placeholder="검색(이름/주소/도시/구) 후 Enter" />
-      </div>
-
-      <div class="row">
-        <select id="countrySel">
-          <option value="">나라(전체)</option>
-        </select>
-      </div>
-      <div class="row">
-        <select id="citySel" disabled>
-          <option value="">도시(전체)</option>
-        </select>
-      </div>
-      <div class="row">
-        <select id="districtSel" disabled>
-          <option value="">구/지역(전체)</option>
-        </select>
-      </div>
-
-      <div class="btns">
-        <button id="viewAll" class="active" type="button">전체</button>
-        <button id="viewKR" type="button">국내</button>
-        <button id="viewOV" type="button">해외</button>
-        <button id="viewSeoul" type="button">서울</button>
-      </div>
-
-      <div class="row">
-        <button id="fit" type="button">현재 결과로 맞춤(Zoom)</button>
-      </div>
-
-      <div class="legend">
-        <span class="chip"><span class="dot green"></span>교회</span>
-        <span class="chip"><span class="dot gold"></span>헌당</span>
-        <span class="chip"><span class="dot blue"></span>새성전</span>
-        <span class="chip">population.csv 있으면 인구비율 자동 표시</span>
-      </div>
-    </div>
-
-    <ul class="list" id="list"></ul>
-  </aside>
+<aside>
+<div class="panel">
+<input id="q" placeholder="검색 후 Enter"/>
+<button onclick="applyFilters(true)">검색</button>
+</div>
+<ul class="list" id="list"></ul>
+</aside>
 </div>
 
 <script>
-/* ========= Helpers ========= */
-const $ = id => document.getElementById(id);
-function setStatus(t){ $('status').textContent = t; }
-function stripBOM(s){ return String(s||'').replace(/^\uFEFF/, ''); }
-function norm(s){ return String(s||'').trim(); }
-function lower(s){ return norm(s).toLowerCase(); }
-function safeHtml(s){
-  return String(s ?? '')
-    .replaceAll('&','&amp;')
-    .replaceAll('<','&lt;')
-    .replaceAll('>','&gt;')
-    .replaceAll('"','&quot;')
-    .replaceAll("'","&#39;");
-}
+const $=id=>document.getElementById(id);
+function setStatus(t){$('status').textContent=t;}
+function stripBOM(s){return String(s||'').replace(/^\uFEFF/,'');}
 function parseNumber(x){
-  if(x==null) return null;
-  const s = String(x).trim().replace(/,/g,'.');
-  const n = Number(s);
-  return Number.isFinite(n) ? n : null;
+  if(x==null)return null;
+  const n=Number(String(x).trim().replace(/,/g,'.'));
+  return Number.isFinite(n)?n:null;
 }
-function fmt(n){
-  if(n==null || !Number.isFinite(n)) return '-';
-  return n.toLocaleString();
-}
-  
-/* ========= CSV Parser ========= */
 
-  function normalizeDelimiter(text){
-  const s = text.trim();
-  const firstLine = s.split(/\r?\n/)[0] || "";
-  if(!firstLine.includes(',')){
-    return s.replace(/\s+/g, ',');
-  }
-  return s;
+/* =========================
+   ⭐ CSV 자동 인식 (핵심 수정)
+========================= */
+function normalizeCSV(text){
+  text=stripBOM(text).trim();
+  const first=text.split(/\r?\n/)[0]||'';
+  if(first.includes(',')) return text;
+  if(first.includes('\t')) return text.replace(/\t/g,',');
+  return text.replace(/ {2,}|\s{2,}/g,',');
 }
-  
+
 function parseCSV(text){
-  const rows=[]; let cur='', inQuotes=false; const out=[];
+  const rows=[];
+  let cur='',inQuotes=false,out=[];
   for(let i=0;i<text.length;i++){
-    const ch=text[i], next=text[i+1];
+    const ch=text[i],next=text[i+1];
     if(ch=='"'){
-      if(inQuotes && next=='"'){ cur+='"'; i++; }
+      if(inQuotes&&next=='"'){cur+='"';i++;}
       else inQuotes=!inQuotes;
-    }else if(ch==',' && !inQuotes){
-      out.push(cur); cur='';
-    }else if((ch=='\n' || ch=='\r') && !inQuotes){
-      if(ch=='\r' && next=='\n') i++;
-      out.push(cur); cur='';
-      rows.push(out.slice()); out.length=0;
-    }else cur += ch;
+    }else if(ch==','&&!inQuotes){
+      out.push(cur);cur='';
+    }else if((ch=='\n'||ch=='\r')&&!inQuotes){
+      if(ch=='\r'&&next=='\n')i++;
+      out.push(cur);rows.push(out.slice());
+      out=[];cur='';
+    }else cur+=ch;
   }
-  out.push(cur);
-  rows.push(out);
+  out.push(cur);rows.push(out);
   return rows;
 }
+
 function rowsToObjects(rows){
-  if(!rows.length) return [];
-  const header = rows[0].map(h=>stripBOM(h).trim());
+  if(!rows.length)return[];
+  const header=rows[0].map(h=>h.trim());
   const objs=[];
   for(let i=1;i<rows.length;i++){
     const r=rows[i];
-    if(r.every(v => String(v||'').trim()==='')) continue;
+    if(r.every(v=>String(v||'').trim()===''))continue;
     const o={};
-    for(let c=0;c<header.length;c++) o[header[c]] = r[c] ?? '';
+    for(let c=0;c<header.length;c++)o[header[c]]=r[c]??'';
     objs.push(o);
   }
   return objs;
 }
 
-/* ===== CSV 한줄 복구(네가 쓰던 안전장치 유지) ===== */
-function repairChurchCSV(text){
-  const s=stripBOM(text);
-  if(s.includes('\n')) return s;
-  const idx=s.indexOf('status');
-  if(idx==-1) return s;
-  const header=s.slice(0,idx+6);
-  let body=s.slice(idx+6).trim();
-  body=body.replace(/\s+(?=\d+,)/g,"\n");
-  return header+"\n"+body;
-}
-function repairPopulationCSV(text){
-  const s=stripBOM(text);
-  if(s.includes('\n')) return s;
-  const idx=s.indexOf('population');
-  if(idx==-1) return s;
-  const header=s.slice(0,idx+10);
-  let body=s.slice(idx+10).trim();
-  body=body.replace(/\s+(?=[A-Za-z][^,]*,)/g,"\n");
-  return header+"\n"+body;
-}
+/* ========================= */
 
-/* ========= Map ========= */
-const map = L.map('map',{worldCopyJump:true}).setView([20,0],2);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-  maxZoom:19,
-  attribution:'© OpenStreetMap'
-}).addTo(map);
-
-const cluster = L.markerClusterGroup({chunkedLoading:true});
+const map=L.map('map').setView([20,0],2);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+const cluster=L.markerClusterGroup();
 map.addLayer(cluster);
 
-/* ========= Data ========= */
-let allItems = [];
-let populationMap = new Map(); // key: country|city|district -> population
-let countsMap = new Map();     // key -> church count (based on allItems)
-let currentFiltered = [];
-let currentView = 'all'; // all | kr | ov | seoul
+let allItems=[];
+let currentFiltered=[];
 
-/* ========= Icon/Status mapping ========= */
-function statusType(it){
-  const s = lower(it.status ?? it.Status ?? it.type ?? it.Type);
-  // 사용자 데이터에 맞게 유연하게
-  if(s.includes('헌당') || s.includes('dedic')) return 'dedication';
-  if(s.includes('새') || s.includes('new') || s.includes('성전')) return 'new';
-  // 기본은 교회
-  return 'church';
-}
-function makeIcon(type){
-  let glyph='★', cls='green';
-  if(type==='dedication'){ glyph='★'; cls='gold'; }
-  if(type==='new'){ glyph='♥'; cls='blue'; }
-  return L.divIcon({
-    className: '',
-    html: `<div class="micon"><div class="glyph sparkle ${cls}">${glyph}</div></div>`,
-    iconSize: [28,28],
-    iconAnchor: [14,28],
-    popupAnchor: [0,-28]
-  });
-}
-function labelOf(type){
-  if(type==='dedication') return '헌당';
-  if(type==='new') return '새성전';
-  return '교회';
-}
-
-/* ========= UI state ========= */
-function setActiveView(btnId){
-  ['viewAll','viewKR','viewOV','viewSeoul'].forEach(id => $(id).classList.remove('active'));
-  $(btnId).classList.add('active');
-}
-function toggleSide(force){
-  const side = $('side');
-  const closed = side.classList.contains('closed');
-  const next = (force!=null) ? force : !closed;
-  if(next) side.classList.remove('closed');
-  else side.classList.add('closed');
-}
-
-/* ========= Load ========= */
-async function loadWorld(){
-  setStatus("전세계 데이터 불러오는 중...");
+async function loadData(){
+  setStatus("CSV 불러오는 중...");
   try{
-    let churchRes = await fetch("./data/churches.csv",{cache:'no-store'});
-    let churchText = await churchRes.text();
-    churchText = repairChurchCSV(churchText);
-
-    const rows = parseCSV(churchText);
-    allItems = rowsToObjects(rows);
-    
-churchText = normalizeDelimiter(churchText);
-    // population.csv (optional)
-    try{
-      let popRes = await fetch("./data/population_admin.csv",{cache:'no-store'});
-      let popText = await popRes.text();
-      popText = repairPopulationCSV(popText);
-      const popRows=parseCSV(popText);
-      const popObjs=rowsToObjects(popRows);
-      for(const p of popObjs){
-        const country = norm(p.country ?? p.Country);
-        const city = norm(p.city ?? p.City);
-        const district = norm(p.district ?? p.District);
-        const key = `${country}|${city}|${district}`;
-        const pop = parseNumber(p.population ?? p.Population);
-        if(pop!=null) populationMap.set(key, pop);
-      }
-    }catch(e){ /* population optional */ }
-
-    // Pre-compute district counts across all data
-    countsMap = new Map();
-    for(const it of allItems){
-      const country = norm(it.country ?? it.Country);
-      const city = norm(it.city ?? it.City);
-      const district = norm(it.district ?? it.District);
-      const key = `${country}|${city}|${district}`;
-      countsMap.set(key, (countsMap.get(key) ?? 0) + 1);
-    }
-
-    buildFilters();
+    let res=await fetch("./data/churches.csv",{cache:'no-store'});
+    let text=await res.text();
+    text=normalizeCSV(text);
+    const rows=parseCSV(text);
+    allItems=rowsToObjects(rows);
     applyFilters(true);
-
   }catch(e){
-    console.error(e);
-    setStatus("CSV 로드 실패 - 파일 존재 확인");
+    setStatus("CSV 로드 실패");
   }
-}
-
-/* ========= Filters (Country/City/District) ========= */
-function uniqueSorted(arr){
-  return Array.from(new Set(arr.filter(v=>norm(v)!=='').map(v=>norm(v))))
-    .sort((a,b)=>a.localeCompare(b,'ko'));
-}
-
-function buildFilters(){
-  // Country options
-  const countries = uniqueSorted(allItems.map(it => it.country ?? it.Country));
-  const cs = $('countrySel');
-  cs.innerHTML = `<option value="">나라(전체)</option>` + countries.map(c=>`<option value="${safeHtml(c)}">${safeHtml(c)}</option>`).join('');
-  $('citySel').innerHTML = `<option value="">도시(전체)</option>`;
-  $('districtSel').innerHTML = `<option value="">구/지역(전체)</option>`;
-  $('citySel').disabled = true;
-  $('districtSel').disabled = true;
-}
-
-function refreshCityDistrict(){
-  const country = $('countrySel').value;
-  const citySel = $('citySel');
-  const distSel = $('districtSel');
-
-  const subset = allItems.filter(it => country==='' || norm(it.country ?? it.Country) === country);
-  const cities = uniqueSorted(subset.map(it => it.city ?? it.City));
-
-  citySel.disabled = (country==='');
-  citySel.innerHTML = `<option value="">도시(전체)</option>` + cities.map(c=>`<option value="${safeHtml(c)}">${safeHtml(c)}</option>`).join('');
-
-  distSel.disabled = true;
-  distSel.innerHTML = `<option value="">구/지역(전체)</option>`;
-}
-
-function refreshDistrict(){
-  const country = $('countrySel').value;
-  const city = $('citySel').value;
-  const distSel = $('districtSel');
-
-  const subset = allItems.filter(it =>
-    (country==='' || norm(it.country ?? it.Country) === country) &&
-    (city==='' || norm(it.city ?? it.City) === city)
-  );
-  const districts = uniqueSorted(subset.map(it => it.district ?? it.District));
-
-  distSel.disabled = (city==='');
-  distSel.innerHTML = `<option value="">구/지역(전체)</option>` + districts.map(d=>`<option value="${safeHtml(d)}">${safeHtml(d)}</option>`).join('');
-}
-
-/* ========= Apply filters + render ========= */
-function isKorea(it){
-  const c = lower(it.country ?? it.Country);
-  return c === 'south korea' || c === 'korea' || c.includes('korea') || c.includes('대한민국') || c.includes('한국');
-}
-function isSeoul(it){
-  const city = lower(it.city ?? it.City);
-  return city === 'seoul' || city.includes('서울');
-}
-
-function matchesView(it){
-  if(currentView==='kr') return isKorea(it);
-  if(currentView==='ov') return !isKorea(it);
-  if(currentView==='seoul') return isKorea(it) && isSeoul(it);
-  return true;
-}
-
-function matchesText(it, q){
-  if(!q) return true;
-  const hay = [
-    it.name, it.address, it.country, it.city, it.district,
-    it.Name, it.Address, it.Country, it.City, it.District
-  ].map(v=>lower(v)).join(' | ');
-  return hay.includes(q);
 }
 
 function applyFilters(fit=false){
-  const q = lower($('q').value);
-  const country = $('countrySel').value;
-  const city = $('citySel').value;
-  const district = $('districtSel').value;
-
-  currentFiltered = allItems.filter(it => {
-    if(!matchesView(it)) return false;
-    if(country && norm(it.country ?? it.Country) !== country) return false;
-    if(city && norm(it.city ?? it.City) !== city) return false;
-    if(district && norm(it.district ?? it.District) !== district) return false;
-    if(!matchesText(it, q)) return false;
-    const lat=parseNumber(it.lat ?? it.latitude ?? it.Lat ?? it.LAT);
-    const lng=parseNumber(it.lng ?? it.lon ?? it.longitude ?? it.Lng ?? it.LNG);
-    return (lat!=null && lng!=null);
+  const q=String($('q').value||'').toLowerCase();
+  currentFiltered=allItems.filter(it=>{
+    const lat=parseNumber(it.lat||it.Lat);
+    const lng=parseNumber(it.lng||it.Lng);
+    if(lat==null||lng==null)return false;
+    if(!q)return true;
+    return Object.values(it).join(' ').toLowerCase().includes(q);
   });
-
-  renderMap();
-  renderList();
-
-  setStatus(`로드 완료 ✅ ${currentFiltered.length.toLocaleString()}개 / 전체 ${allItems.length.toLocaleString()}개`);
-
-  if(fit) fitToResults();
+  render();
+  setStatus(`로드 완료 ${currentFiltered.length}개 / 전체 ${allItems.length}개`);
+  if(fit)fitBounds();
 }
 
-function fitToResults(){
-  if(!currentFiltered.length) return;
-  const layers = [];
-  for(const it of currentFiltered){
-    if(it._marker) layers.push(it._marker);
-  }
-  if(!layers.length) return;
-  const group = L.featureGroup(layers);
-  map.fitBounds(group.getBounds().pad(0.2));
-}
-
-/* ========= Popups & Stats ========= */
-function districtKey(it){
-  const country = norm(it.country ?? it.Country);
-  const city = norm(it.city ?? it.City);
-  const district = norm(it.district ?? it.District);
-  return `${country}|${city}|${district}`;
-}
-function popupHTML(it){
-  const name = safeHtml(norm(it.name ?? it.Name) || '(이름없음)');
-  const addr = safeHtml(norm(it.address ?? it.Address));
-  const country = safeHtml(norm(it.country ?? it.Country));
-  const city = safeHtml(norm(it.city ?? it.City));
-  const district = safeHtml(norm(it.district ?? it.District));
-  const type = statusType(it);
-  const statusLabel = labelOf(type);
-
-  const key = districtKey(it);
-  const pop = populationMap.get(key);
-  const cnt = countsMap.get(key) ?? null;
-  const pplPerChurch = (pop!=null && cnt!=null && cnt>0) ? Math.round(pop/cnt) : null;
-
-  const link = norm(it.link ?? it.Link);
-  const linkHtml = link ? `<div style="margin-top:6px;"><a href="${safeHtml(link)}" target="_blank" rel="noopener">관련 링크 열기</a></div>` : '';
-
-  const statsHtml = (pop!=null || cnt!=null)
-    ? `<div style="margin-top:8px; padding-top:8px; border-top:1px solid #eee; font-size:12px; color:#374151;">
-         <div><b>지역:</b> ${country} / ${city} / ${district}</div>
-         <div><b>인구:</b> ${fmt(pop)}명</div>
-         <div><b>해당 지역 교회수:</b> ${fmt(cnt)}개</div>
-         <div><b>교회 1개당 평균 인구:</b> ${fmt(pplPerChurch)}명</div>
-       </div>`
-    : `<div style="margin-top:8px; padding-top:8px; border-top:1px solid #eee; font-size:12px; color:#6b7280;">
-         (population.csv가 있으면 인구비율이 표시됩니다)
-       </div>`;
-
-  return `
-    <div style="min-width:220px;">
-      <div style="font-weight:800; font-size:14px; margin-bottom:4px;">${name}</div>
-      <div style="font-size:12px; color:#6b7280; margin-bottom:6px;">상태: <b>${statusLabel}</b></div>
-      <div style="font-size:12px; line-height:1.35;">${addr || ''}</div>
-      ${statsHtml}
-      ${linkHtml}
-    </div>
-  `;
-}
-
-/* ========= Render Map ========= */
-function renderMap(){
+function render(){
   cluster.clearLayers();
-
-  for(const it of currentFiltered){
-    const lat=parseNumber(it.lat ?? it.latitude ?? it.Lat ?? it.LAT);
-    const lng=parseNumber(it.lng ?? it.lon ?? it.longitude ?? it.Lng ?? it.LNG);
-    if(lat==null || lng==null) continue;
-
-    const type = statusType(it);
-    const marker = L.marker([lat,lng], { icon: makeIcon(type) })
-      .bindPopup(popupHTML(it));
-
-    it._marker = marker;
+  $('list').innerHTML='';
+  currentFiltered.forEach(it=>{
+    const lat=parseNumber(it.lat||it.Lat);
+    const lng=parseNumber(it.lng||it.Lng);
+    const marker=L.marker([lat,lng]).bindPopup(`<b>${it.name||''}</b><br>${it.address||''}`);
     cluster.addLayer(marker);
-  }
-}
-
-/* ========= Render List ========= */
-function renderList(){
-  const ul = $('list');
-  ul.innerHTML = '';
-
-  if(!currentFiltered.length){
-    ul.innerHTML = `<li class="item"><div class="meta">결과가 없습니다. 필터를 조정해보세요.</div></li>`;
-    return;
-  }
-
-  // 정렬: 한국(서울 우선) → 나머지
-  const sorted = currentFiltered.slice().sort((a,b)=>{
-    const ak = (isKorea(a)?0:1) + (isSeoul(a)?-0.2:0);
-    const bk = (isKorea(b)?0:1) + (isSeoul(b)?-0.2:0);
-    if(ak!==bk) return ak-bk;
-    return norm(a.name ?? a.Name).localeCompare(norm(b.name ?? b.Name),'ko');
+    const li=document.createElement('li');
+    li.className='item';
+    li.textContent=it.name||'';
+    li.onclick=()=>{map.setView([lat,lng],10);marker.openPopup();}
+    $('list').appendChild(li);
   });
-
-  for(const it of sorted){
-    const name = norm(it.name ?? it.Name) || '(이름없음)';
-    const addr = norm(it.address ?? it.Address);
-    const country = norm(it.country ?? it.Country);
-    const city = norm(it.city ?? it.City);
-    const district = norm(it.district ?? it.District);
-    const type = statusType(it);
-    const statusLabel = labelOf(type);
-
-    const key = districtKey(it);
-    const pop = populationMap.get(key);
-    const cnt = countsMap.get(key) ?? null;
-    const pplPerChurch = (pop!=null && cnt!=null && cnt>0) ? Math.round(pop/cnt) : null;
-
-    const badgeText =
-      (pop!=null && pplPerChurch!=null)
-      ? `인구/교회≈${fmt(pplPerChurch)}`
-      : statusLabel;
-
-    const li = document.createElement('li');
-    li.className = 'item';
-    li.innerHTML = `
-      <div class="title">
-        <span class="badge">${safeHtml(badgeText)}</span>
-        <span>${safeHtml(name)}</span>
-      </div>
-      <div class="meta">${safeHtml(country)} · ${safeHtml(city)} · ${safeHtml(district)}</div>
-      <div class="meta">${safeHtml(addr)}</div>
-    `;
-
-    li.addEventListener('click', ()=>{
-      if(it._marker){
-        map.setView(it._marker.getLatLng(), Math.max(map.getZoom(), 9), {animate:true});
-        it._marker.openPopup();
-        if(window.matchMedia('(max-width: 780px)').matches) toggleSide(false);
-      }
-    });
-
-    ul.appendChild(li);
-  }
 }
 
-/* ========= Events ========= */
-$('countrySel').addEventListener('change', ()=>{
-  refreshCityDistrict();
-  $('districtSel').value = '';
-  applyFilters();
-});
-$('citySel').addEventListener('change', ()=>{
-  refreshDistrict();
-  applyFilters();
-});
-$('districtSel').addEventListener('change', ()=>{
-  applyFilters();
+function fitBounds(){
+  if(!currentFiltered.length)return;
+  const bounds=L.featureGroup(cluster.getLayers()).getBounds();
+  map.fitBounds(bounds.pad(0.2));
+}
+
+$('q').addEventListener('keydown',e=>{
+  if(e.key==="Enter")applyFilters(true);
 });
 
-$('q').addEventListener('keydown', (e)=>{
-  if(e.key === 'Enter'){
-    applyFilters(true);
-  }
-});
-
-$('fit').addEventListener('click', ()=>fitToResults());
-
-$('viewAll').addEventListener('click', ()=>{
-  currentView='all';
-  setActiveView('viewAll');
-  applyFilters(true);
-});
-$('viewKR').addEventListener('click', ()=>{
-  currentView='kr';
-  setActiveView('viewKR');
-  applyFilters(true);
-});
-$('viewOV').addEventListener('click', ()=>{
-  currentView='ov';
-  setActiveView('viewOV');
-  applyFilters(true);
-});
-$('viewSeoul').addEventListener('click', ()=>{
-  currentView='seoul';
-  setActiveView('viewSeoul');
-  applyFilters(true);
-});
-
-$('toggleSide').addEventListener('click', ()=>{
-  const side = $('side');
-  toggleSide(side.classList.contains('closed')); // toggle
-});
-
-/* ========= Start ========= */
-loadWorld();
+loadData();
 </script>
 </body>
 </html>
-
-
