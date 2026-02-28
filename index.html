@@ -371,7 +371,7 @@ function toggleSide(force){
 async function loadWorld(){
   setStatus("전세계 데이터 불러오는 중...");
   try{
-    let churchRes = await fetch("./output_with_coords.csv",{cache:'no-store'});
+    let churchRes = await fetch("./data/churches.csv",{cache:'no-store'});
     let churchText = await churchRes.text();
     churchText = repairChurchCSV(churchText);
 
@@ -380,7 +380,7 @@ async function loadWorld(){
 
     // population.csv (optional)
     try{
-      let popRes = await fetch("./population.csv",{cache:'no-store'});
+      let popRes = await fetch("./data/population_admin.csv",{cache:'no-store'});
       let popText = await popRes.text();
       popText = repairPopulationCSV(popText);
       const popRows=parseCSV(popText);
@@ -700,3 +700,4 @@ loadWorld();
 </script>
 </body>
 </html>
+
