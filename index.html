@@ -21,17 +21,15 @@
       --bg:#fff;
       --chip:#f6f6f6;
       --radius:12px;
-      --header-h: 210px;   /* 자동 재계산됨 */
-      --side-w: 360px;     /* 우측 목록 폭 */
+      --header-h: 210px;
+      --side-w: 360px;
     }
-
     html, body { height: 100%; margin: 0; }
     body{
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       background:var(--bg);
       overflow:hidden;
     }
-
     header{
       position: fixed;
       top:0; left:0; right:0;
@@ -43,7 +41,6 @@
       gap: 10px;
       box-sizing: border-box;
     }
-
     .titleRow{ display:flex; justify-content:space-between; align-items:center; gap:12px; }
     .title{ font-weight:800; font-size:22px; letter-spacing:-.3px; }
     .small{ font-size:12px; color:var(--muted); }
@@ -97,7 +94,6 @@
     .list{ margin:0; padding-left: 18px; }
     .list li{ margin:3px 0; }
 
-    /* 헤더 아래 영역: 지도 + 사이드바 */
     #wrap{
       position: fixed;
       top: var(--header-h);
@@ -105,8 +101,6 @@
       display:flex;
       min-height: 0;
     }
-
-    /* 지도 영역 */
     #mapWrap{
       flex: 1 1 auto;
       position: relative;
@@ -118,8 +112,6 @@
       width:100%;
       background:#eef;
     }
-
-    /* 우측 목록 패널 */
     #side{
       width: var(--side-w);
       max-width: 48vw;
@@ -180,7 +172,6 @@
       border-radius:999px;
     }
 
-    /* 지도 우측 하단 범례(아이콘 모양) */
     .mapLegend{
       position:absolute;
       bottom:20px;
@@ -220,9 +211,7 @@
       .dash{ grid-template-columns: 1fr; }
       #side{ width: 44vw; }
     }
-
     @media (max-width: 720px){
-      /* 모바일: 목록을 아래로 */
       #wrap{ flex-direction:column; }
       #mapWrap{ border-right:none; border-bottom:1px solid var(--border); height: 58%; }
       #side{ width:100%; max-width:none; height: 42%; }
@@ -242,18 +231,13 @@
     <button id="btnSeoulOnly" disabled>서울만 보기</button>
     <button id="btnShowAll" disabled>전체 보기</button>
 
-    <!-- 교회 데이터 업로드(옵션) -->
     <input id="file" type="file" accept=".csv,.json,application/json,text/csv" />
-
-    <!-- ✅ 인구 데이터 업로드 (population.csv) (옵션) -->
     <input id="popFile" type="file" accept=".csv,.json,application/json,text/csv" />
 
-    <!-- ✅ 나라/도시/구 필터 -->
     <select id="countryFilter"><option value="all">모든 나라</option></select>
     <select id="cityFilter" disabled><option value="all">모든 도시</option></select>
     <select id="districtFilter" disabled><option value="all">모든 구/지역</option></select>
 
-    <!-- ✅ 유형 필터 -->
     <select id="typeFilter" title="유형 필터">
       <option value="all" selected>전체 유형</option>
       <option value="new">새성전</option>
@@ -261,7 +245,6 @@
       <option value="church">교회</option>
     </select>
 
-    <!-- ✅ Enter 검색 안정형 -->
     <form id="searchForm" style="display:flex; gap:10px; flex:1;">
       <input id="qAll" type="text" placeholder="검색 (예: Asia South Korea Seoul 강남 헌당 선릉로)" />
       <button id="btnSearch" type="submit">검색</button>
@@ -305,7 +288,6 @@
   <div id="mapWrap">
     <div id="map"></div>
 
-    <!-- 범례 (아이콘 모양대로) -->
     <div class="mapLegend" aria-label="legend">
       <div class="legendItem">
         <svg viewBox="0 0 24 34" xmlns="http://www.w3.org/2000/svg">
@@ -316,7 +298,6 @@
         </svg>
         새성전 <span class="legendCount" id="legendNew">0</span>
       </div>
-
       <div class="legendItem">
         <svg viewBox="0 0 24 34" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 34s10-12.2 10-20C22 6.3 17.5 2 12 2S2 6.3 2 14c0 7.8 10 20 10 20z"
@@ -326,7 +307,6 @@
         </svg>
         현당/헌당 <span class="legendCount" id="legendHall">0</span>
       </div>
-
       <div class="legendItem">
         <svg viewBox="0 0 24 34" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 34s10-12.2 10-20C22 6.3 17.5 2 12 2S2 6.3 2 14c0 7.8 10 20 10 20z"
@@ -340,7 +320,6 @@
     </div>
   </div>
 
-  <!-- 우측 목록 -->
   <aside id="side">
     <div class="sideHeader">
       <div class="sideTitle">📌 연쇄 표시 목록</div>
@@ -356,14 +335,16 @@
   // ✅ 자동 CSV 경로 (GitHub Pages)
   const AUTO_CSV_URL = 'data/churches.csv';
 
-  // ✅ 3% 가정 상수
   const POP_RATE = 0.03;
 
-  // ✅ 대륙 필터 상태
-  let continentFilter = 'all';   // 'all' 또는 'Asia' 'Europe' ...
-  let lastContinentTop = [];
+  // ✅ 대륙 필터
+  let continentFilter = 'all';
 
-  // ✅ 헤더 높이 자동 계산
+  function cacheBusted(url){
+    const v = Date.now();
+    return url.includes('?') ? `${url}&v=${v}` : `${url}?v=${v}`;
+  }
+
   function syncHeaderHeight(){
     const h = document.querySelector('header');
     if(!h) return;
@@ -376,7 +357,6 @@
   setTimeout(syncHeaderHeight, 60);
   setTimeout(syncHeaderHeight, 260);
 
-  // 지도
   const map = L.map('map', { worldCopyJump:true }).setView([20, 0], 2);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -384,7 +364,6 @@
     attribution: '&copy; OpenStreetMap'
   }).addTo(map);
 
-  // 클러스터
   const cluster = L.markerClusterGroup({
     showCoverageOnHover: false,
     disableClusteringAtZoom: 16,
@@ -399,18 +378,14 @@
       '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
     }[m]));
   }
-
   function parseNumber(x){
     const n = Number(x);
     return Number.isFinite(n) ? n : null;
   }
-
   function stripBOM(s){ return String(s ?? '').replace(/^\uFEFF/, ''); }
-
   function uniqSorted(arr){
     return [...new Set(arr.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)));
   }
-
   function setOptions(selectEl, values, placeholder){
     const cur = selectEl.value;
     selectEl.innerHTML =
@@ -420,9 +395,8 @@
     else selectEl.value = "all";
   }
 
-  // ===== 인구 데이터 (옵션) =====
-  let populationMap = new Map(); // key: country|city|district -> population
-
+  // ===== 인구(옵션) =====
+  let populationMap = new Map();
   function stdCountry(v){
     const s = String(v ?? '').trim();
     const n = s.toLowerCase().replace(/\s+/g,'');
@@ -452,7 +426,7 @@
     return `${stdCountry(country)||'Unknown'}|${stdCity(country,city)||'Unknown'}|${stdDistrict(country,city,district)||'Unknown'}`;
   }
 
-  // CSV 파서
+  // CSV
   function parseCSV(text){
     const rows = [];
     let cur = '', inQuotes = false;
@@ -478,7 +452,6 @@
     if(out.some(v => v.trim() !== '')) rows.push(out.slice());
     return rows;
   }
-
   function rowsToObjects(rows){
     if(!rows.length) return [];
     const header = rows[0].map(h => stripBOM(String(h ?? '').trim()));
@@ -497,11 +470,9 @@
   }
 
   function parsePopulationCSV(text){
-    // columns: country,city,district,population
     const rows = parseCSV(text);
     const objs = rowsToObjects(rows);
     const map = new Map();
-
     for(const o of objs){
       const country = stdCountry(o.country ?? o.Country);
       const city = stdCity(country, o.city ?? o.City);
@@ -519,7 +490,6 @@
     try{
       const text = await file.text();
       const lower = file.name.toLowerCase();
-
       if(lower.endsWith('.json')){
         const data = JSON.parse(text);
         const arr = Array.isArray(data) ? data : (data.items || []);
@@ -536,7 +506,6 @@
       } else {
         populationMap = parsePopulationCSV(text);
       }
-
       setStatus(`인구 로드 ✅ ${populationMap.size.toLocaleString()}개 지역`);
       if(allItems.length){
         rebuildFilters();
@@ -548,7 +517,7 @@
     }
   }
 
-  // ✅ 구글 핀(색 + 내부 도형)
+  // pin
   function googlePin(color, shape){
     let innerShape = '';
     if(shape === 'circle'){
@@ -563,7 +532,6 @@
         " fill="${color}" />
       `;
     }
-
     const svg = `
       <svg width="26" height="36" viewBox="0 0 24 34" xmlns="http://www.w3.org/2000/svg">
         <path d="M12 34s10-12.2 10-20C22 6.3 17.5 2 12 2S2 6.3 2 14c0 7.8 10 20 10 20z"
@@ -572,7 +540,6 @@
         ${innerShape}
       </svg>
     `;
-
     return L.divIcon({
       className:"",
       iconSize:[26,36],
@@ -588,15 +555,13 @@
     if(s.includes('현당') || s.includes('헌당')) return 'hall';
     return 'church';
   }
-
   function iconByStatus(status){
     const t = typeFromStatus(status);
-    if(t === 'new')  return googlePin('#ef4444', 'circle'); // 빨강 원
-    if(t === 'hall') return googlePin('#3b82f6', 'square'); // 파랑 네모
-    return googlePin('#f59e0b', 'star');                    // 금색 별
+    if(t === 'new')  return googlePin('#ef4444', 'circle');
+    if(t === 'hall') return googlePin('#3b82f6', 'square');
+    return googlePin('#f59e0b', 'star');
   }
 
-  // 대륙 추정(가벼운 규칙 기반)
   function guessContinent(country){
     const c = String(country ?? '').toLowerCase();
     if(!c) return 'Unknown';
@@ -609,7 +574,6 @@
     return 'Other';
   }
 
-  // 정규화 (표준화 + 인구 매칭 + 교회당 인구는 render에서 계산)
   function normalizeItem(it){
     const name = it.name ?? it.Name ?? it.church_name ?? '';
     const address = it.address ?? it.addr ?? it.Address ?? '';
@@ -623,12 +587,10 @@
     const status = it.status ?? it.Status ?? '';
     const code = it.code ?? it.Code ?? it.no ?? it.No ?? '';
 
-    // 표준화
     country = stdCountry(country);
     city = stdCity(country, city);
     district = stdDistrict(country, city, district);
 
-    // 인구 매칭
     const key = adminKey(country, city, district);
     const population = populationMap.has(key) ? populationMap.get(key) : null;
 
@@ -637,15 +599,11 @@
   }
 
   function normText(s){
-    return String(s ?? '')
-      .toLowerCase()
-      .replace(/\s+/g, '')
-      .replace(/[()\-._]/g, '');
+    return String(s ?? '').toLowerCase().replace(/\s+/g, '').replace(/[()\-._]/g, '');
   }
 
-  // 상태
   let allItems = [];
-  let lastRendered = []; // { item, marker, id }
+  let lastRendered = [];
   let isFiltered = false;
 
   const CHUNK_SIZE = 800;
@@ -666,7 +624,6 @@
     const byCont = new Map();
     let cntNew = 0, cntHall = 0, cntChurch = 0;
 
-    // 평균 교회당 인구(표시 중, 인구 매칭된 것만)
     let ppcSum = 0;
     let ppcCnt = 0;
 
@@ -701,7 +658,6 @@
     $('legendChurch').textContent = cntChurch.toLocaleString();
 
     const contTop = [...byCont.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6);
-    lastContinentTop = contTop;
 
     $('continentTop').innerHTML = contTop.length
       ? contTop.map(([k,v]) => `
@@ -731,15 +687,51 @@
   function citySel(){ return $('cityFilter').value; }
   function dSel(){ return $('districtFilter').value; }
 
-  // ✅ 필터 옵션 재구성 (나라->도시->구)
-  function rebuildFilters(){
-    const normAll = allItems.map(normalizeItem).filter(it => it.lat !== null && it.lng !== null);
+  // ✅ 현재 상태(대륙/유형/나라/도시/구)를 반영한 필터 리스트 생성
+  function getCurrentFilteredNormalizedForFilters(){
+    const tf = currentTypeFilter();
+    const CF = cSel();
+    const CiF = citySel();
+    const DF = dSel();
 
-    const countries = uniqSorted(normAll.map(it => it.country || 'Unknown'));
+    const out = [];
+    for(const raw of allItems){
+      const it = normalizeItem(raw);
+      if(it.lat === null || it.lng === null) continue;
+
+      if(continentFilter !== 'all' && guessContinent(it.country) !== continentFilter) continue;
+      if(tf !== 'all' && it.type !== tf) continue;
+
+      // 여기서는 "현재 선택값" 기준으로도 좁혀서 다음 드롭다운이 자연스럽게
+      if(CF !== 'all' && (it.country || 'Unknown') !== CF) continue;
+      if(CiF !== 'all' && (it.city || 'Unknown') !== CiF) continue;
+      if(DF !== 'all' && (it.district || 'Unknown') !== DF) continue;
+
+      out.push(it);
+    }
+    return out;
+  }
+
+  function rebuildFilters(){
+    if(!allItems.length) return;
+
+    // 먼저 대륙/유형을 반영한 전체 후보를 가져옴
+    const base = [];
+    for(const raw of allItems){
+      const it = normalizeItem(raw);
+      if(it.lat === null || it.lng === null) continue;
+
+      if(continentFilter !== 'all' && guessContinent(it.country) !== continentFilter) continue;
+      if(currentTypeFilter() !== 'all' && it.type !== currentTypeFilter()) continue;
+
+      base.push(it);
+    }
+
+    const countries = uniqSorted(base.map(it => it.country || 'Unknown'));
     setOptions($('countryFilter'), countries, '모든 나라');
 
     const country = $('countryFilter').value;
-    const byCountry = (country === 'all') ? normAll : normAll.filter(it => (it.country || 'Unknown') === country);
+    const byCountry = (country === 'all') ? base : base.filter(it => (it.country || 'Unknown') === country);
 
     const cities = uniqSorted(byCountry.map(it => it.city || 'Unknown'));
     $('cityFilter').disabled = false;
@@ -753,7 +745,6 @@
     setOptions($('districtFilter'), districts, '모든 구/지역');
   }
 
-  // ✅ 우측 목록 렌더
   function renderSideList(rendered){
     const listEl = $('resultList');
     listEl.innerHTML = '';
@@ -805,7 +796,6 @@
     }
   }
 
-  // ✅ 렌더
   async function render(rawItems){
     const t0 = performance.now();
     cluster.clearLayers();
@@ -822,22 +812,17 @@
       const it = normalizeItem(raw);
       if(!it.name || !it.address || it.lat === null || it.lng === null) continue;
 
-      // 나라/도시/구 필터
       if(CF !== 'all' && (it.country || 'Unknown') !== CF) continue;
       if(CiF !== 'all' && (it.city || 'Unknown') !== CiF) continue;
       if(DF !== 'all' && (it.district || 'Unknown') !== DF) continue;
 
-      // 유형 필터
       if(tf !== 'all' && it.type !== tf) continue;
-
-      // ✅ 대륙 필터(추가)
       if(continentFilter !== 'all' && guessContinent(it.country) !== continentFilter) continue;
 
       normalized.push(it);
     }
 
-    // ✅ 구(행정구역)별 교회 수로 교회당 인구 계산 (3% 모델)
-    const byAdmin = new Map(); // admin_key -> count
+    const byAdmin = new Map();
     for(const it of normalized){
       const key = it.admin_key || adminKey(it.country, it.city, it.district);
       byAdmin.set(key, (byAdmin.get(key) || 0) + 1);
@@ -895,7 +880,6 @@
     }
 
     renderSideList(lastRendered);
-
     updateButtons(placed);
     if(placed) fitToCluster();
 
@@ -903,49 +887,30 @@
     $('chipPerf').textContent = `render ${Math.round(t1 - t0)}ms`;
     $('perfText').textContent = `데이터 rows: ${allItems.length.toLocaleString()} / 현재 표시: ${placed.toLocaleString()}`;
     setStatus(`표시 완료 ✅ ${placed.toLocaleString()}개${isFiltered ? ' (검색)' : ''}`);
-
     map.invalidateSize(true);
   }
 
-  // ✅ 업그레이드 검색(대륙/국가/도시/지역/유형/주소/이름 AND 검색)
+  // ✅ AND 검색
   function runSearch(){
     const q = $('qAll').value.trim();
     if(!q){ setStatus('검색어를 입력해줘'); return; }
     if(!allItems.length){ setStatus('먼저 데이터를 불러와줘'); return; }
 
-    const keywords = q
-      .toLowerCase()
-      .split(/\s+/)
-      .map(s => s.replace(/[()\-._]/g,''));
+    const keywords = q.toLowerCase().split(/\s+/).map(s => s.replace(/[()\-._]/g,''));
 
     const hits = allItems.filter(raw => {
       const it = normalizeItem(raw);
-
       const continent = guessContinent(it.country);
-      const typeLabel =
-        it.type === 'new' ? '새성전' :
-        it.type === 'hall' ? '헌당' : '교회';
+      const typeLabel = it.type === 'new' ? '새성전' : it.type === 'hall' ? '헌당' : '교회';
 
       const searchableText = [
-        continent,
-        it.country,
-        it.city,
-        it.district,
-        it.address,
-        it.name,
-        typeLabel
-      ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase()
-      .replace(/[()\-._]/g,'');
+        continent, it.country, it.city, it.district, it.address, it.name, typeLabel
+      ].filter(Boolean).join(' ').toLowerCase().replace(/[()\-._]/g,'');
 
       return keywords.every(k => searchableText.includes(k));
     });
 
     if(!hits.length){ setStatus(`검색 결과 없음: "${q}"`); return; }
-
-    // 검색은 "검색 결과"로 보여주되, 대륙 클릭 필터는 유지 (원하면 아래 2줄 주석 가능)
     isFiltered = true;
     render(hits);
   }
@@ -957,66 +922,34 @@
     render(allItems);
   }
 
-  // ✅ 자동 로드: data/churches.csv (CSV) 또는 기존 churches.json(호환)
   async function loadWorld(){
     setStatus('전세계 데이터 불러오는 중…');
 
     try{
-      // 1) CSV 우선
-      try{
-        const res = await fetch(AUTO_CSV_URL, { cache: 'no-store' });
-        if(res.ok){
-          const text = await res.text();
-          const rows = rowsToObjects(parseCSV(text));
-          if(rows && rows.length){
-            allItems = rows;
-            isFiltered = false;
-            $('qAll').value = '';
-            $('typeFilter').value = 'all';
+      // ✅ CSV 우선 + 캐시 무시
+      const res = await fetch(cacheBusted(AUTO_CSV_URL), { cache: 'no-store' });
+      if(res.ok){
+        const text = await res.text();
+        const rows = rowsToObjects(parseCSV(text));
+        if(rows && rows.length){
+          allItems = rows;
+          isFiltered = false;
+          $('qAll').value = '';
+          $('typeFilter').value = 'all';
 
-            rebuildFilters();
-            await render(allItems);
-            setStatus(`자동 로드 ✅ ${allItems.length.toLocaleString()}개 (data/churches.csv)`);
-            return;
-          }
+          rebuildFilters();
+          await render(allItems);
+          setStatus(`자동 로드 ✅ ${allItems.length.toLocaleString()}개 (data/churches.csv)`);
+          return;
         }
-      }catch(_e){}
-
-      // 2) fallback: json 후보들
-      const candidates = ['output/churches.json', 'churches.json', 'data/churches.json'];
-      let data = null;
-
-      for(const p of candidates){
-        try{
-          const res = await fetch(p, { headers: { 'Accept': 'application/json' } });
-          if(!res.ok) continue;
-          data = await res.json();
-          break;
-        }catch(_e){}
       }
-      if(!data) throw new Error('fetch failed');
-
-      const items = Array.isArray(data) ? data : (data.features ? data.features.map(f => ({
-        ...f.properties,
-        lng: f.geometry?.coordinates?.[0],
-        lat: f.geometry?.coordinates?.[1],
-      })) : []);
-
-      allItems = items;
-      isFiltered = false;
-      $('qAll').value = '';
-      $('typeFilter').value = 'all';
-
-      rebuildFilters();
-      await render(allItems);
-      setStatus(`로드 ✅ ${allItems.length.toLocaleString()}개 (JSON fallback)`);
+      throw new Error('csv fetch failed');
     } catch(e){
       console.error(e);
       setStatus('전세계 로드 실패: data/churches.csv 경로/파일명 또는 업로드 여부를 확인해줘');
     }
   }
 
-  // 업로드 처리 (교회 데이터 옵션)
   async function handleFile(file){
     if(!file) return;
     setStatus('파일 읽는 중…');
@@ -1038,6 +971,9 @@
         allItems = rowsToObjects(rows);
       }
 
+      continentFilter = 'all';
+      $('chipCont').textContent = 'all';
+
       isFiltered = false;
       $('qAll').value = '';
       $('typeFilter').value = 'all';
@@ -1051,11 +987,12 @@
     }
   }
 
-  // ✅ 서울만 보기: 표준화값 기준으로 세팅
   function setSeoulOnly(){
     if(!allItems.length) return;
     isFiltered = false;
     $('qAll').value = '';
+    continentFilter = 'all';
+    $('chipCont').textContent = 'all';
 
     $('countryFilter').value = 'South Korea';
     rebuildFilters();
@@ -1066,12 +1003,14 @@
     render(allItems);
   }
 
-  // 전체 보기: 필터 초기화
   function showAll(){
     if(!allItems.length) return;
     isFiltered = false;
     $('qAll').value = '';
     $('typeFilter').value = 'all';
+
+    continentFilter = 'all';
+    $('chipCont').textContent = 'all';
 
     $('countryFilter').value = 'all';
     rebuildFilters();
@@ -1082,7 +1021,6 @@
     render(allItems);
   }
 
-  // 비우기
   function clearAll(){
     cluster.clearLayers();
     allItems = [];
@@ -1125,31 +1063,20 @@
     map.setView([20,0],2);
   }
 
-  // 이벤트 바인딩
+  // events
   $('btnLoadWorld').addEventListener('click', loadWorld);
   $('btnSeoulOnly').addEventListener('click', setSeoulOnly);
   $('btnShowAll').addEventListener('click', showAll);
 
-  $('file').addEventListener('change', (e) => {
-    const f = e.target.files?.[0];
-    handleFile(f);
-  });
+  $('file').addEventListener('change', (e) => handleFile(e.target.files?.[0]));
+  $('popFile').addEventListener('change', (e) => handlePopulationFile(e.target.files?.[0]));
 
-  $('popFile').addEventListener('change', (e) => {
-    const f = e.target.files?.[0];
-    handlePopulationFile(f);
-  });
-
-  $('searchForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    runSearch();
-  });
+  $('searchForm').addEventListener('submit', (e) => { e.preventDefault(); runSearch(); });
 
   $('btnReset').addEventListener('click', resetSearch);
   $('btnFit').addEventListener('click', fitToCluster);
   $('btnClear').addEventListener('click', clearAll);
 
-  // ✅ 필터 변경 시 자동 렌더
   $('countryFilter').addEventListener('change', () => {
     if(!allItems.length) return;
     rebuildFilters();
@@ -1172,16 +1099,12 @@
 
   $('typeFilter').addEventListener('change', () => {
     if(!allItems.length) return;
-    if(isFiltered){
-      const q = $('qAll').value.trim();
-      if(q) runSearch();
-      else { isFiltered = false; render(allItems); }
-    } else {
-      render(allItems);
-    }
+    rebuildFilters();
+    isFiltered = false; $('qAll').value = '';
+    render(allItems);
   });
 
-  // ✅ 대륙 TOP 클릭 → 대륙 필터 적용
+  // continent click
   $('continentTop').addEventListener('click', (e) => {
     const a = e.target.closest('.contLink');
     if(!a) return;
@@ -1189,22 +1112,28 @@
     const cont = a.dataset.cont || 'all';
     continentFilter = cont;
     $('chipCont').textContent = cont;
+
+    // ✅ 대륙 바뀌면 드롭다운도 해당 범위로 재구성
+    rebuildFilters();
+
     isFiltered = false;
     $('qAll').value = '';
     render(allItems);
   });
 
-  // ✅ chipCont 클릭 → 대륙 필터 해제(all)
   $('chipCont').addEventListener('click', () => {
     if(continentFilter === 'all') return;
     continentFilter = 'all';
     $('chipCont').textContent = 'all';
+
+    rebuildFilters();
+
     isFiltered = false;
     $('qAll').value = '';
     render(allItems);
   });
 
-  // 시작: 자동 로드
+  // start
   loadWorld();
 </script>
 </body>
