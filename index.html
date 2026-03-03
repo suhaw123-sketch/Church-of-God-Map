@@ -334,6 +334,7 @@
 
   // ✅ 자동 CSV 경로 (GitHub Pages)
   const AUTO_CSV_URL = 'data/churches.csv';
+  const AUTO_POP_URL = 'data/population.csv';
 
   const POP_RATE = 0.03;
 
@@ -345,6 +346,7 @@
     return url.includes('?') ? `${url}&v=${v}` : `${url}?v=${v}`;
   }
 
+  // ✅ 헤더 높이 자동
   function syncHeaderHeight(){
     const h = document.querySelector('header');
     if(!h) return;
@@ -357,6 +359,7 @@
   setTimeout(syncHeaderHeight, 60);
   setTimeout(syncHeaderHeight, 260);
 
+  // 지도
   const map = L.map('map', { worldCopyJump:true }).setView([20, 0], 2);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -364,6 +367,7 @@
     attribution: '&copy; OpenStreetMap'
   }).addTo(map);
 
+  // 클러스터
   const cluster = L.markerClusterGroup({
     showCoverageOnHover: false,
     disableClusteringAtZoom: 16,
@@ -395,8 +399,9 @@
     else selectEl.value = "all";
   }
 
-  // ===== 인구(옵션) =====
+  // ===== 인구 =====
   let populationMap = new Map();
+
   function stdCountry(v){
     const s = String(v ?? '').trim();
     const n = s.toLowerCase().replace(/\s+/g,'');
@@ -426,7 +431,7 @@
     return `${stdCountry(country)||'Unknown'}|${stdCity(country,city)||'Unknown'}|${stdDistrict(country,city,district)||'Unknown'}`;
   }
 
-  // CSV
+  // CSV 파서
   function parseCSV(text){
     const rows = [];
     let cur = '', inQuotes = false;
@@ -484,12 +489,29 @@
     return map;
   }
 
+  // ✅ 인구 자동 로드 (top-level await 금지 → async 함수로)
+  async function loadPopulationAuto(){
+    try{
+      const resPop = await fetch(cacheBusted(AUTO_POP_URL), { cache: 'no-store' });
+      if(resPop.ok){
+        const textPop = await resPop.text();
+        populationMap = parsePopulationCSV(textPop);
+        console.log('population loaded:', populationMap.size);
+        return true;
+      }
+    }catch(e){
+      console.log('population auto load failed', e);
+    }
+    return false;
+  }
+
   async function handlePopulationFile(file){
     if(!file) return;
     setStatus('인구 파일 읽는 중…');
     try{
       const text = await file.text();
       const lower = file.name.toLowerCase();
+
       if(lower.endsWith('.json')){
         const data = JSON.parse(text);
         const arr = Array.isArray(data) ? data : (data.items || []);
@@ -506,6 +528,7 @@
       } else {
         populationMap = parsePopulationCSV(text);
       }
+
       setStatus(`인구 로드 ✅ ${populationMap.size.toLocaleString()}개 지역`);
       if(allItems.length){
         rebuildFilters();
@@ -598,10 +621,6 @@
     return { name, address, country, city, district, dedication, link, status, type, lat, lng, code, admin_key:key, population, people_per_church:null, raw: it };
   }
 
-  function normText(s){
-    return String(s ?? '').toLowerCase().replace(/\s+/g, '').replace(/[()\-._]/g, '');
-  }
-
   let allItems = [];
   let lastRendered = [];
   let isFiltered = false;
@@ -687,35 +706,10 @@
   function citySel(){ return $('cityFilter').value; }
   function dSel(){ return $('districtFilter').value; }
 
-  // ✅ 현재 상태(대륙/유형/나라/도시/구)를 반영한 필터 리스트 생성
-  function getCurrentFilteredNormalizedForFilters(){
-    const tf = currentTypeFilter();
-    const CF = cSel();
-    const CiF = citySel();
-    const DF = dSel();
-
-    const out = [];
-    for(const raw of allItems){
-      const it = normalizeItem(raw);
-      if(it.lat === null || it.lng === null) continue;
-
-      if(continentFilter !== 'all' && guessContinent(it.country) !== continentFilter) continue;
-      if(tf !== 'all' && it.type !== tf) continue;
-
-      // 여기서는 "현재 선택값" 기준으로도 좁혀서 다음 드롭다운이 자연스럽게
-      if(CF !== 'all' && (it.country || 'Unknown') !== CF) continue;
-      if(CiF !== 'all' && (it.city || 'Unknown') !== CiF) continue;
-      if(DF !== 'all' && (it.district || 'Unknown') !== DF) continue;
-
-      out.push(it);
-    }
-    return out;
-  }
-
+  // ✅ 대륙/유형 반영해서 드롭다운 재구성
   function rebuildFilters(){
     if(!allItems.length) return;
 
-    // 먼저 대륙/유형을 반영한 전체 후보를 가져옴
     const base = [];
     for(const raw of allItems){
       const it = normalizeItem(raw);
@@ -745,6 +739,7 @@
     setOptions($('districtFilter'), districts, '모든 구/지역');
   }
 
+  // ✅ 우측 목록
   function renderSideList(rendered){
     const listEl = $('resultList');
     listEl.innerHTML = '';
@@ -822,6 +817,7 @@
       normalized.push(it);
     }
 
+    // ✅ 교회당 인구(3%) 계산: 현재 표시되는 행정구역별 교회 수 기준
     const byAdmin = new Map();
     for(const it of normalized){
       const key = it.admin_key || adminKey(it.country, it.city, it.district);
@@ -925,21 +921,30 @@
   async function loadWorld(){
     setStatus('전세계 데이터 불러오는 중…');
 
+    // ✅ 인구 자동 로드 먼저
+    const popOk = await loadPopulationAuto();
+    if(popOk) setStatus(`인구 자동 로드 ✅ ${populationMap.size.toLocaleString()}개 지역`);
+    else setStatus('인구 자동 로드 실패(수동 업로드 가능)');
+
     try{
-      // ✅ CSV 우선 + 캐시 무시
       const res = await fetch(cacheBusted(AUTO_CSV_URL), { cache: 'no-store' });
       if(res.ok){
         const text = await res.text();
         const rows = rowsToObjects(parseCSV(text));
         if(rows && rows.length){
           allItems = rows;
+
+          continentFilter = 'all';
+          $('chipCont').textContent = 'all';
+
           isFiltered = false;
           $('qAll').value = '';
           $('typeFilter').value = 'all';
 
           rebuildFilters();
           await render(allItems);
-          setStatus(`자동 로드 ✅ ${allItems.length.toLocaleString()}개 (data/churches.csv)`);
+
+          setStatus(`자동 로드 ✅ ${allItems.length.toLocaleString()}개 (data/churches.csv)` + (popOk ? ' + 인구' : ''));
           return;
         }
       }
@@ -991,6 +996,7 @@
     if(!allItems.length) return;
     isFiltered = false;
     $('qAll').value = '';
+
     continentFilter = 'all';
     $('chipCont').textContent = 'all';
 
@@ -1113,7 +1119,6 @@
     continentFilter = cont;
     $('chipCont').textContent = cont;
 
-    // ✅ 대륙 바뀌면 드롭다운도 해당 범위로 재구성
     rebuildFilters();
 
     isFiltered = false;
