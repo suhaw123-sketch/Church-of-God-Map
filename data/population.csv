@@ -1,8 +1,8 @@
 country,city,district,population
 South Korea,Seoul,강남구,544085
 South Korea,Seoul,강동구,462664
-South Korea,Seoul,마포구,370000
-South Korea,Seoul,송파구,660000
+South Korea,Seoul,강북구,305000
+South Korea,Seoul,강서구,580000
 South Korea,Seoul,관악구,480000
 South Korea,Seoul,광진구,350000
 South Korea,Seoul,구로구,410000
@@ -11,16 +11,17 @@ South Korea,Seoul,노원구,510000
 South Korea,Seoul,도봉구,330000
 South Korea,Seoul,동대문구,340000
 South Korea,Seoul,동작구,390000
-South Korea,Seoul,서대문구,300000
-South Korea,Seoul,서초구,430000
-South Korea,Seoul,성동구,310000
+South Korea,Seoul,마포구,370000
+South Korea,Seoul,서대문구,320000
+South Korea,Seoul,서초구,410000
+South Korea,Seoul,성동구,290000
 South Korea,Seoul,성북구,430000
-South Korea,Seoul,양천구,460000
-South Korea,Seoul,영등포구,400000
+South Korea,Seoul,송파구,660000
+South Korea,Seoul,양천구,440000
+South Korea,Seoul,영등포구,380000
 South Korea,Seoul,용산구,220000
-South Korea,Seoul,은평구,480000
+South Korea,Seoul,은평구,470000
 South Korea,Seoul,종로구,150000
-South Korea,Seoul,중구,130000
+South Korea,Seoul,중구,120000
 South Korea,Seoul,중랑구,390000
-South Korea,Seoul,강북구,300000
-South Korea,Seoul,강서구,570000
+
