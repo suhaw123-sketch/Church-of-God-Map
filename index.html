@@ -3,160 +3,166 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>교회 지도 완성판</title>
+<title>교회 지도 (좌표 자동 생성 포함)</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-
 <style>
-html,body{height:100%;margin:0;}
-#map{height:100%;}
-header{padding:10px;border-bottom:1px solid #ddd;}
-button{margin-right:5px;}
+body { margin:0; font-family:sans-serif; }
+#map { height:90vh; }
+header { padding:10px; border-bottom:1px solid #ddd; }
+button { margin-right:8px; }
 </style>
 </head>
 
 <body>
 
 <header>
-<button id="btnLoad">데이터 로드</button>
-<button id="btnSeoul">서울만 보기</button>
-<span id="status">대기중</span>
+  <button id="btnLoad">CSV 불러오기</button>
+  <input type="file" id="file" accept=".csv"/>
+  <button id="btnAutoCoordDownload">좌표 생성 + 다운로드</button>
+  <span id="status">대기중</span>
 </header>
 
 <div id="map"></div>
 
 <script>
-const POP_RATE = 0.03;
-
-const map = L.map('map').setView([20,0],2);
+// ================= 지도 =================
+const map = L.map('map').setView([37.5665,126.9780], 7);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
   maxZoom:19
 }).addTo(map);
 
-const cluster = L.markerClusterGroup();
-map.addLayer(cluster);
+let markers = [];
 
+// ================= 상태 =================
+function setStatus(msg){
+  document.getElementById('status').textContent = msg;
+}
+
+// ================= CSV 파싱 =================
+function parseCSV(text){
+  const lines = text.split('\n');
+  const headers = lines[0].split(',');
+  return lines.slice(1).map(line=>{
+    const values = line.split(',');
+    const obj = {};
+    headers.forEach((h,i)=> obj[h.trim()] = values[i]);
+    return obj;
+  });
+}
+
+// ================= 데이터 =================
 let allItems = [];
-let populationMap = new Map();
 
-function parseNumber(x){
-  const n = Number(x);
-  return Number.isFinite(n) ? n : null;
-}
+// ================= CSV 로드 =================
+document.getElementById('file').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  const text = await file.text();
+  allItems = parseCSV(text);
+  setStatus(`로드 완료 (${allItems.length})`);
+  render();
+});
 
-function adminKey(c,ci,d){
-  return `${c}|${ci}|${d}`;
-}
+// ================= 지도 표시 =================
+function render(){
+  markers.forEach(m=>map.removeLayer(m));
+  markers = [];
 
-/* =========================
-   ✔ 교회당 인구 계산
-========================= */
-function computePeoplePerChurch(items){
-  const countMap = new Map();
-
-  for(const it of items){
-    const k = it.key;
-    countMap.set(k,(countMap.get(k)||0)+1);
-  }
-
-  for(const it of items){
-    if(it.population){
-      const count = countMap.get(it.key)||1;
-      it.ppc = Math.round((it.population*POP_RATE)/count);
+  allItems.forEach(it=>{
+    if(it.lat && it.lng){
+      const m = L.marker([it.lat, it.lng])
+        .addTo(map)
+        .bindPopup(it.name || '');
+      markers.push(m);
     }
-  }
+  });
 }
 
-/* =========================
-   ✔ 데이터 렌더
-========================= */
-async function render(items){
+// ================= 카카오 API =================
+const REST_API_KEY = "여기에_카카오_API키";
 
-  cluster.clearLayers();
+async function geocodeAddress(address){
+  const url = `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(address)}`;
 
-  const normalized = items.map(it=>{
-    return {
-      name: it.name,
-      lat: parseNumber(it.lat),
-      lng: parseNumber(it.lng),
-      country: it.country,
-      city: it.city,
-      district: it.district,
-      population: populationMap.get(
-        adminKey(it.country,it.city,it.district)
-      ),
-      key: adminKey(it.country,it.city,it.district)
+  try{
+    const res = await fetch(url,{
+      headers:{ Authorization:`KakaoAK ${REST_API_KEY}` }
+    });
+
+    const data = await res.json();
+
+    if(data.documents.length){
+      return {
+        lat: parseFloat(data.documents[0].y),
+        lng: parseFloat(data.documents[0].x)
+      };
     }
-  }).filter(it=>it.lat && it.lng);
-
-  computePeoplePerChurch(normalized);
-
-  for(const it of normalized){
-
-    const marker = L.marker([it.lat,it.lng]);
-
-    marker.bindPopup(`
-      <b>${it.name}</b><br>
-      ${it.city}<br>
-      ${
-        it.ppc 
-        ? `교회당 인구: ${it.ppc.toLocaleString()}`
-        : `인구 없음`
-      }
-    `);
-
-    cluster.addLayer(marker);
+  }catch(e){
+    console.error(e);
   }
 
-  if(cluster.getBounds().isValid()){
-    map.fitBounds(cluster.getBounds());
-  }
-
-  document.getElementById("status").textContent =
-    `표시 ${normalized.length}개`;
+  return null;
 }
 
-/* =========================
-   ✔ 샘플 데이터
-========================= */
-const sampleData = [
-  {name:"강남교회", lat:37.5, lng:127.02, country:"South Korea", city:"Seoul", district:"강남구"},
-  {name:"서초교회", lat:37.48, lng:127.01, country:"South Korea", city:"Seoul", district:"서초구"},
-  {name:"부산교회", lat:35.18, lng:129.07, country:"South Korea", city:"Busan", district:"해운대구"}
-];
+// ================= CSV 다운로드 =================
+function downloadCSV(data){
+  const header = Object.keys(data[0]).join(',');
 
-const samplePop = [
-  {country:"South Korea", city:"Seoul", district:"강남구", population:550000},
-  {country:"South Korea", city:"Seoul", district:"서초구", population:430000},
-  {country:"South Korea", city:"Busan", district:"해운대구", population:420000}
-];
+  const rows = data.map(row =>
+    Object.values(row).map(v=>`"${v}"`).join(',')
+  );
 
-/* =========================
-   ✔ 버튼 이벤트
-========================= */
-document.getElementById("btnLoad").onclick = async ()=>{
-  allItems = sampleData;
+  const csv = [header,...rows].join('\n');
 
-  populationMap.clear();
-  for(const p of samplePop){
-    populationMap.set(
-      adminKey(p.country,p.city,p.district),
-      p.population
-    );
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'result.csv';
+  a.click();
+}
+
+// ================= 좌표 자동 생성 =================
+async function generateCoordsAndDownload(){
+
+  if(!allItems.length){
+    alert('CSV 먼저 넣어');
+    return;
   }
 
-  await render(allItems);
-};
+  setStatus('좌표 생성 중...');
 
-document.getElementById("btnSeoul").onclick = async ()=>{
-  const seoul = allItems.filter(it=>it.city==="Seoul");
-  await render(seoul);
-};
+  let success=0, fail=0;
+
+  for(const it of allItems){
+
+    if(it.lat && it.lng) continue;
+
+    const addr = `${it.address}`;
+
+    const coord = await geocodeAddress(addr);
+
+    if(coord){
+      it.lat = coord.lat;
+      it.lng = coord.lng;
+      success++;
+    }else{
+      fail++;
+    }
+
+    await new Promise(r=>setTimeout(r,200));
+  }
+
+  setStatus(`완료 성공:${success} 실패:${fail}`);
+
+  render();
+  downloadCSV(allItems);
+}
+
+// ================= 버튼 =================
+document.getElementById('btnAutoCoordDownload').onclick = generateCoordsAndDownload;
 
 </script>
 
