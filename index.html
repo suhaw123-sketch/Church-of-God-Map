@@ -1,247 +1,42 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<title>교회 지도 관리자</title>
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
-
-<style>
-body{margin:0;font-family:sans-serif;background:#f5f6f7}
-header{padding:12px 20px;font-size:20px;font-weight:bold}
-.toolbar{padding:10px;display:flex;gap:10px;flex-wrap:wrap}
-#map{height:500px;flex:1}
-.panel{display:flex}
-.list{width:300px;background:#fff;overflow:auto}
-.card{padding:10px;border-bottom:1px solid #eee;cursor:pointer}
-.card.active{background:#e3f2fd}
-button{padding:6px 10px;border-radius:6px;border:1px solid #ccc;cursor:pointer}
-</style>
+  <meta charset="UTF-8">
+  <title>하나님의교회 지도</title>
+  <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=73b507fb754b2820529d8dc82b379259"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    #map {
+      width: 100%;
+      height: 100vh;
+    }
+  </style>
 </head>
-
 <body>
 
-<header>교회 지도 관리자</header>
-
-<div class="toolbar">
-<input type="file" id="fileInput">
-<button id="btnAutoCoord">좌표 자동 생성</button>
-<button onclick="downloadCSV()">CSV 다운로드</button>
-<button onclick="showFailed()">좌표 없는 데이터</button>
-</div>
-
-<div class="panel">
 <div id="map"></div>
-<div class="list" id="list"></div>
-</div>
-
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
 <script>
-// ================= 기본 =================
-const map = L.map('map').setView([37.5665,126.9780], 3);
+  var container = document.getElementById('map');
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-  attribution:'© OpenStreetMap'
-}).addTo(map);
-
-let allItems = [];
-let filteredItems = [];
-let markersLayer = null;
-let selectedItem = null;
-
-// ================= CSV 로드 =================
-document.getElementById('fileInput').addEventListener('change',function(e){
-
-  const file = e.target.files[0];
-  const reader = new FileReader();
-
-  reader.onload = function(e){
-    const rows = e.target.result.split('\n').slice(1);
-
-    allItems = rows.map(r=>{
-      const cols = r.split(',');
-
-      return {
-        name: cols[0],
-        address: cols[1],
-        lat: parseFloat(cols[2]),
-        lng: parseFloat(cols[3])
-      };
-    });
-
-    filteredItems = [...allItems];
-    render(filteredItems);
-    saveLocal();
+  var options = {
+    center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울
+    level: 5
   };
 
-  reader.readAsText(file);
-});
+  var map = new kakao.maps.Map(container, options);
 
-// ================= 렌더 =================
-function render(items){
+  // 마커 추가
+  var markerPosition = new kakao.maps.LatLng(37.5665, 126.9780);
 
-  if(markersLayer){
-    markersLayer.clearLayers();
-  }
-
-  markersLayer = L.markerClusterGroup();
-
-  items.forEach(it=>{
-
-    if(!it.lat || !it.lng) return;
-
-    const marker = L.marker([it.lat,it.lng]);
-
-    marker.bindPopup(`<b>${it.name}</b><br>${it.address}`);
-
-    markersLayer.addLayer(marker);
+  var marker = new kakao.maps.Marker({
+    position: markerPosition
   });
 
-  map.addLayer(markersLayer);
-  updateList(items);
-}
-
-// ================= 리스트 =================
-function updateList(items){
-
-  const el = document.getElementById('list');
-  el.innerHTML='';
-
-  items.forEach(it=>{
-
-    const div = document.createElement('div');
-    div.className='card';
-
-    div.innerHTML = `<b>${it.name}</b><br>${it.address}`;
-
-    div.onclick = ()=>{
-      selectedItem = it;
-
-      document.querySelectorAll('.card').forEach(c=>c.classList.remove('active'));
-      div.classList.add('active');
-    };
-
-    el.appendChild(div);
-  });
-}
-
-// ================= 지도 클릭 수정 =================
-map.on('click', function(e){
-
-  if(!selectedItem){
-    alert('리스트에서 선택 먼저');
-    return;
-  }
-
-  selectedItem.lat = e.latlng.lat;
-  selectedItem.lng = e.latlng.lng;
-
-  saveLocal();
-  render(filteredItems);
-
-  alert('좌표 저장 완료');
-});
-
-// ================= 카카오 API =================
-const REST_API_KEY = "여기에_카카오_API키";
-
-async function geocodeAddress(address){
-
-  const url = `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(address)}`;
-
-  const res = await fetch(url,{
-    headers:{Authorization:`KakaoAK ${REST_API_KEY}`}
-  });
-
-  const data = await res.json();
-
-  if(data.documents.length){
-    return {
-      lat: parseFloat(data.documents[0].y),
-      lng: parseFloat(data.documents[0].x)
-    };
-  }
-
-  return null;
-}
-
-// ================= 좌표 자동 생성 =================
-async function generateCoords(){
-
-  let success=0, fail=0;
-
-  for(const it of allItems){
-
-    if(it.lat && it.lng) continue;
-
-    const coord = await geocodeAddress(it.address);
-
-    if(coord){
-      it.lat = coord.lat;
-      it.lng = coord.lng;
-      success++;
-    }else{
-      fail++;
-    }
-
-    await new Promise(r=>setTimeout(r,200));
-  }
-
-  filteredItems = [...allItems];
-
-  saveLocal();
-  render(filteredItems);
-
-  alert(`완료 성공:${success} 실패:${fail}`);
-}
-
-document.getElementById('btnAutoCoord').onclick = generateCoords;
-
-// ================= CSV 다운로드 =================
-function downloadCSV(){
-
-  let csv = 'name,address,lat,lng\n';
-
-  allItems.forEach(it=>{
-    csv += `${it.name},${it.address},${it.lat||''},${it.lng||''}\n`;
-  });
-
-  const blob = new Blob([csv],{type:'text/csv'});
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'church_data.csv';
-  a.click();
-}
-
-// ================= 좌표 없는 데이터 =================
-function showFailed(){
-  const failed = allItems.filter(it=>!it.lat || !it.lng);
-  render(failed);
-}
-
-// ================= 자동 저장 =================
-function saveLocal(){
-  localStorage.setItem('churchData', JSON.stringify(allItems));
-}
-
-function loadLocal(){
-
-  const data = localStorage.getItem('churchData');
-
-  if(data){
-    allItems = JSON.parse(data);
-    filteredItems = [...allItems];
-    render(filteredItems);
-  }
-}
-
-loadLocal();
-
+  marker.setMap(map);
 </script>
 
 </body>
