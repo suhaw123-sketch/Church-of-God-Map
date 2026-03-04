@@ -1,83 +1,114 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>교회 지도 (좌표 자동 생성 포함)</title>
+<meta charset="UTF-8">
+<title>전세계/서울 교회 지도 v3</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
 
 <style>
-body { margin:0; font-family:sans-serif; }
-#map { height:90vh; }
-header { padding:10px; border-bottom:1px solid #ddd; }
-button { margin-right:8px; }
+body{margin:0;font-family:sans-serif;background:#f5f6f7}
+header{padding:10px 20px;font-size:22px;font-weight:bold}
+.toolbar{padding:10px;display:flex;gap:10px;flex-wrap:wrap}
+#map{height:500px}
+.panel{display:flex}
+.list{width:300px;background:#fff;padding:10px;overflow:auto}
+.card{padding:10px;border-bottom:1px solid #eee}
+button{padding:6px 10px;border-radius:6px;border:1px solid #ccc;cursor:pointer}
 </style>
 </head>
 
 <body>
 
-<header>
-  <button id="btnLoad">CSV 불러오기</button>
-  <input type="file" id="file" accept=".csv"/>
-  <button id="btnAutoCoordDownload">좌표 생성 + 다운로드</button>
-  <span id="status">대기중</span>
-</header>
+<header>전세계/서울 교회 현황 지도 v3</header>
 
+<div class="toolbar">
+<input type="file" id="fileInput">
+<button id="btnAutoCoord">좌표 자동 생성</button>
+<button id="btnRender">지도 표시</button>
+</div>
+
+<div class="panel">
 <div id="map"></div>
+<div class="list" id="list"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
 <script>
-// ================= 지도 =================
-const map = L.map('map').setView([37.5665,126.9780], 7);
+// ================= 기본 =================
+const map = L.map('map').setView([37.5665,126.9780], 3);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-  maxZoom:19
+  attribution:'© OpenStreetMap'
 }).addTo(map);
 
-let markers = [];
-
-// ================= 상태 =================
-function setStatus(msg){
-  document.getElementById('status').textContent = msg;
-}
-
-// ================= CSV 파싱 =================
-function parseCSV(text){
-  const lines = text.split('\n');
-  const headers = lines[0].split(',');
-  return lines.slice(1).map(line=>{
-    const values = line.split(',');
-    const obj = {};
-    headers.forEach((h,i)=> obj[h.trim()] = values[i]);
-    return obj;
-  });
-}
-
-// ================= 데이터 =================
 let allItems = [];
+let markersLayer = null;
 
 // ================= CSV 로드 =================
-document.getElementById('file').addEventListener('change', async (e)=>{
+document.getElementById('fileInput').addEventListener('change',function(e){
+
   const file = e.target.files[0];
-  const text = await file.text();
-  allItems = parseCSV(text);
-  setStatus(`로드 완료 (${allItems.length})`);
-  render();
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    const rows = e.target.result.split('\n').slice(1);
+
+    allItems = rows.map(r=>{
+      const cols = r.split(',');
+
+      return {
+        name: cols[0],
+        address: cols[1],
+        lat: parseFloat(cols[2]),
+        lng: parseFloat(cols[3])
+      };
+    });
+
+    render(allItems);
+  };
+
+  reader.readAsText(file);
 });
 
-// ================= 지도 표시 =================
-function render(){
-  markers.forEach(m=>map.removeLayer(m));
-  markers = [];
+// ================= 렌더 =================
+function render(items){
 
-  allItems.forEach(it=>{
-    if(it.lat && it.lng){
-      const m = L.marker([it.lat, it.lng])
-        .addTo(map)
-        .bindPopup(it.name || '');
-      markers.push(m);
-    }
+  if(markersLayer){
+    markersLayer.clearLayers();
+  }
+
+  markersLayer = L.markerClusterGroup();
+
+  items.forEach(it=>{
+
+    if(!it.lat || !it.lng) return;
+
+    const marker = L.marker([it.lat,it.lng]);
+
+    marker.bindPopup(`<b>${it.name}</b><br>${it.address}`);
+
+    markersLayer.addLayer(marker);
+  });
+
+  map.addLayer(markersLayer);
+  updateList(items);
+}
+
+// ================= 리스트 =================
+function updateList(items){
+
+  const el = document.getElementById('list');
+  el.innerHTML = '';
+
+  items.forEach(it=>{
+    const div = document.createElement('div');
+    div.className='card';
+    div.innerHTML = `<b>${it.name}</b><br>${it.address}`;
+    el.appendChild(div);
   });
 }
 
@@ -85,54 +116,27 @@ function render(){
 const REST_API_KEY = "여기에_카카오_API키";
 
 async function geocodeAddress(address){
+
   const url = `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(address)}`;
 
-  try{
-    const res = await fetch(url,{
-      headers:{ Authorization:`KakaoAK ${REST_API_KEY}` }
-    });
+  const res = await fetch(url,{
+    headers:{Authorization:`KakaoAK ${REST_API_KEY}`}
+  });
 
-    const data = await res.json();
+  const data = await res.json();
 
-    if(data.documents.length){
-      return {
-        lat: parseFloat(data.documents[0].y),
-        lng: parseFloat(data.documents[0].x)
-      };
-    }
-  }catch(e){
-    console.error(e);
+  if(data.documents.length){
+    return {
+      lat: parseFloat(data.documents[0].y),
+      lng: parseFloat(data.documents[0].x)
+    };
   }
 
   return null;
 }
 
-// ================= CSV 다운로드 =================
-function downloadCSV(data){
-  const header = Object.keys(data[0]).join(',');
-
-  const rows = data.map(row =>
-    Object.values(row).map(v=>`"${v}"`).join(',')
-  );
-
-  const csv = [header,...rows].join('\n');
-
-  const blob = new Blob([csv],{type:'text/csv'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'result.csv';
-  a.click();
-}
-
-// ================= 좌표 자동 생성 =================
-async function generateCoordsAndDownload(){
-
-  if(!allItems.length){
-    alert('CSV 먼저 넣어');
-    return;
-  }
-
-  setStatus('좌표 생성 중...');
+// ================= 좌표 생성 =================
+async function generateCoords(){
 
   let success=0, fail=0;
 
@@ -140,9 +144,7 @@ async function generateCoordsAndDownload(){
 
     if(it.lat && it.lng) continue;
 
-    const addr = `${it.address}`;
-
-    const coord = await geocodeAddress(addr);
+    const coord = await geocodeAddress(it.address);
 
     if(coord){
       it.lat = coord.lat;
@@ -155,14 +157,14 @@ async function generateCoordsAndDownload(){
     await new Promise(r=>setTimeout(r,200));
   }
 
-  setStatus(`완료 성공:${success} 실패:${fail}`);
+  alert(`완료 성공:${success} 실패:${fail}`);
 
-  render();
-  downloadCSV(allItems);
+  render(allItems);
 }
 
 // ================= 버튼 =================
-document.getElementById('btnAutoCoordDownload').onclick = generateCoordsAndDownload;
+document.getElementById('btnAutoCoord').onclick = generateCoords;
+document.getElementById('btnRender').onclick = ()=>render(allItems);
 
 </script>
 
