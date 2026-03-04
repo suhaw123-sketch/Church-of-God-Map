@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>전세계/서울 교회 현황 지도 v3 (지역/나라 필터 + 우측목록 + 인구비율)</title>
+  <title>전세계/서울 교회 현황 지도 v3 (자동 업데이트 + CSV)</title>
 
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -41,81 +41,98 @@
 
   <script>
     var map = L.map('map').setView([37.5665, 126.9780], 11);
-
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
     var markers = L.markerClusterGroup();
-    var allChurches = []; // 모든 교회 데이터 저장
+    var allChurches = [];
 
-    // CSV 불러오기
-    Papa.parse('data/churches.csv', {
-      download: true,
-      header: true,
-      skipEmptyLines: true,
-      complete: function(results) {
-        allChurches = results.data.filter(c => c.lat && c.lng);
-        setupFilters();
-        updateMapAndList();
+    // CSV 불러오기 + 자동 업데이트
+    async function loadChurchData() {
+      try {
+        const res = await fetch('data/churches.csv');
+        const csvText = await res.text();
+        const parsed = Papa.parse(csvText, {header:true, skipEmptyLines:true});
+        allChurches = parsed.data;
+        
+        await geocodeMissing(allChurches);
+        updateFilters();
+        updateMap();
+      } catch(e){
+        console.error('CSV 로드 오류:', e);
       }
-    });
-
-    function setupFilters() {
-      var countries = [...new Set(allChurches.map(c => c.country))];
-      var cities = [...new Set(allChurches.map(c => c.city))];
-
-      var countrySelect = document.getElementById('countryFilter');
-      countries.forEach(function(c) {
-        var option = document.createElement('option');
-        option.value = c;
-        option.textContent = c;
-        countrySelect.appendChild(option);
-      });
-
-      var citySelect = document.getElementById('cityFilter');
-      cities.forEach(function(c) {
-        var option = document.createElement('option');
-        option.value = c;
-        option.textContent = c;
-        citySelect.appendChild(option);
-      });
-
-      countrySelect.addEventListener('change', updateMapAndList);
-      citySelect.addEventListener('change', updateMapAndList);
     }
 
-    function updateMapAndList() {
+    // 주소 → 좌표 변환
+    async function geocodeMissing(churches){
+      const delay = ms => new Promise(r=>setTimeout(r, ms));
+      for(let church of churches){
+        if(!church.lat || !church.lng){
+          const query = encodeURIComponent(church.address);
+          const url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}`;
+          try {
+            const res = await fetch(url, {headers:{'Accept-Language':'ko'}});
+            const data = await res.json();
+            if(data.length>0){
+              church.lat = data[0].lat;
+              church.lng = data[0].lon;
+            }
+          } catch(e){ console.error('Geocoding error:', e); }
+          await delay(1000);
+        }
+      }
+    }
+
+    // 필터 업데이트
+    function updateFilters(){
+      const countrySelect = document.getElementById('countryFilter');
+      const citySelect = document.getElementById('cityFilter');
+
+      countrySelect.innerHTML = '<option value="">전체</option>';
+      citySelect.innerHTML = '<option value="">전체</option>';
+
+      const countries = [...new Set(allChurches.map(c=>c.country).filter(c=>c))];
+      const cities = [...new Set(allChurches.map(c=>c.city).filter(c=>c))];
+
+      countries.forEach(c=>countrySelect.appendChild(new Option(c,c)));
+      cities.forEach(c=>citySelect.appendChild(new Option(c,c)));
+
+      countrySelect.onchange = updateMap;
+      citySelect.onchange = updateMap;
+    }
+
+    // 지도 + 목록 업데이트
+    function updateMap(){
       markers.clearLayers();
-      var country = document.getElementById('countryFilter').value;
-      var city = document.getElementById('cityFilter').value;
+      const country = document.getElementById('countryFilter').value;
+      const city = document.getElementById('cityFilter').value;
 
-      var filtered = allChurches.filter(c => {
-        return (!country || c.country === country) &&
-               (!city || c.city === city);
-      });
+      const filtered = allChurches.filter(c=>c.lat && c.lng)
+                                  .filter(c=>(!country || c.country===country) && (!city || c.city===city));
 
-      var churchList = document.getElementById('churchList');
+      const churchList = document.getElementById('churchList');
       churchList.innerHTML = '';
 
-      filtered.forEach(function(church) {
-        var marker = L.marker([parseFloat(church.lat), parseFloat(church.lng)])
-                      .bindPopup("<b>" + church.name + "</b><br>" + church.address);
+      filtered.forEach(church=>{
+        const marker = L.marker([parseFloat(church.lat), parseFloat(church.lng)])
+                        .bindPopup("<b>"+church.name+"</b><br>"+church.address);
         markers.addLayer(marker);
 
-        var div = document.createElement('div');
+        const div = document.createElement('div');
         div.className = 'church-item';
         div.textContent = church.name;
-        div.addEventListener('click', function() {
-          map.setView([parseFloat(church.lat), parseFloat(church.lng)], 16);
-          marker.openPopup();
-        });
+        div.onclick = ()=>{ map.setView([parseFloat(church.lat), parseFloat(church.lng)],16); marker.openPopup(); }
         churchList.appendChild(div);
       });
 
       map.addLayer(markers);
     }
+
+    // 30초마다 CSV 자동 재로드
+    setInterval(loadChurchData, 30000);
+    loadChurchData(); // 초기 로드
   </script>
 </body>
 </html>
