@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>전세계/서울 교회 현황 지도 v3 (자동화: CSV 로드 + 필터 + 우측목록)</title>
+  <title>전세계/서울 교회 현황 지도 v3 (CSV 자동화)</title>
 
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -65,7 +65,6 @@
       display:grid;
       gap:8px;
     }
-    .item .top{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;}
     .title{font-size:14px;font-weight:800;line-height:1.25;}
     .meta{font-size:12px;color:var(--muted);line-height:1.35;}
     .btns{display:flex;gap:8px;flex-wrap:wrap;}
@@ -87,6 +86,7 @@
     .popup h3{margin:0 0 6px;font-size:14px;}
     .popup .p{margin:0;font-size:12px;line-height:1.45;}
     .popup .links{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
   </style>
 </head>
 
@@ -98,7 +98,7 @@
     <header>
       <h1>전세계/서울 교회 현황 지도 v3</h1>
       <div class="sub">
-        CSV 자동 로드: <b id="csvPathLabel"></b><br/>
+        CSV 자동 로드: <b class="mono" id="csvPathLabel"></b><br/>
         (대륙/나라/검색/목록 클릭 줌)
       </div>
     </header>
@@ -164,17 +164,26 @@
     <section class="list" id="list"></section>
 
     <div class="footerNote">
-      ✅ CSV는 절대경로로 불러옵니다: <b>/Church-of-God-Map/data/churches.csv</b><br/>
-      ⚠️ CSV가 안 보이면 브라우저에서 강력 새로고침(Ctrl+Shift+R)을 해주세요.
+      ✅ 404가 계속 나면: <span class="mono">/data/churches.csv</span> 파일이 실제로 배포 폴더에 있는지 확인<br/>
+      ✅ 새로고침: <b>Ctrl + Shift + R</b>
     </div>
   </aside>
 </div>
 
 <script>
   // =========================
-  // 0) 설정 (절대경로 고정: /index, /index/ 어디서 열어도 안 깨짐)
+  // 0) CSV 경로 "완전 자동" (어느 URL로 열어도 repo/data/churches.csv를 찾음)
   // =========================
-  const CSV_URL = "/Church-of-God-Map/data/churches.csv";
+  function detectRepoBasePath() {
+    // GitHub Pages 프로젝트 페이지: /REPO/...
+    // 예) /Church-of-God-Map/index  -> repo = "Church-of-God-Map"
+    const parts = (location.pathname || "/").split("/").filter(Boolean);
+    const repo = parts.length ? parts[0] : "";
+    // user pages(레포 없이 루트)일 수도 있으므로 repo가 없으면 "" 처리
+    return repo ? `/${repo}/` : "/";
+  }
+  const BASE = detectRepoBasePath();
+  const CSV_URL = `${BASE}data/churches.csv`;
   document.getElementById("csvPathLabel").textContent = CSV_URL;
 
   const CAPITAL_REGIONS = new Set(["서울","서울특별시","경기","경기도","인천","인천광역시"]);
@@ -248,7 +257,7 @@
         if(ch === '"') inQuotes=true;
         else if(ch === ",") pushVal();
         else if(ch === "\n"){ pushVal(); pushRow(); }
-        else if(ch === "\r"){ /* ignore */ }
+        else if(ch === "\r"){ }
         else val+=ch;
       }
     }
@@ -269,7 +278,7 @@
   }
 
   // =========================
-  // 3) 지도/레이어
+  // 3) 지도
   // =========================
   const map=L.map("map",{zoomControl:true}).setView([20,0],2);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
@@ -382,13 +391,11 @@
       const item=document.createElement("div");
       item.className="item";
       item.innerHTML=`
-        <div class="top">
-          <div>
-            <div class="title">${title}</div>
-            <div class="meta">${loc}</div>
-            <div class="meta">${addr}</div>
-            <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">${badges.join("")}</div>
-          </div>
+        <div>
+          <div class="title">${title}</div>
+          <div class="meta">${loc}</div>
+          <div class="meta">${addr}</div>
+          <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">${badges.join("")}</div>
         </div>
         <div class="btns">
           <button class="btn" data-action="zoom">지도에서 보기</button>
@@ -396,6 +403,7 @@
           <a class="btn" target="_blank" rel="noopener" href="https://www.openstreetmap.org/search?query=${makeOSMQuery(row)}">OSM</a>
           ${safeStr(row.link) ? `<a class="btn" target="_blank" rel="noopener" href="${safeStr(row.link)}">링크</a>` : ""}
         </div>`;
+
       item.querySelector('[data-action="zoom"]').addEventListener("click", ()=>{
         const marker=markerByKey.get(key);
         if(marker){
@@ -405,6 +413,7 @@
           alert("이 항목은 좌표(lat/lng)가 없어 지도에서 바로 보기 어렵습니다.\nCSV에 lat/lng를 채워주세요.");
         }
       });
+
       listEl.appendChild(item);
     });
   }
@@ -412,8 +421,8 @@
   function renderStats(){
     const rows=filteredRows.length;
     const markers=filteredRows.filter(hasCoord).length;
-
     let totalChurch=0, totalNeed=0;
+
     for(const row of filteredRows){
       const cc=toNumber(row["교회수"], toNumber(row.churches,1)) || 1;
       totalChurch += cc;
@@ -496,9 +505,6 @@
     document.getElementById("toggleSearchFullText").addEventListener("change", applyFilters);
   }
 
-  // =========================
-  // 8) 실행
-  // =========================
   bindEvents();
   loadCSV().catch(err=>{
     console.error(err);
@@ -507,14 +513,18 @@
       <div class="card">
         <div class="k">CSV 로드 실패</div>
         <div class="s">
-          요청 URL: <b>${CSV_URL}</b><br/>
-          에러: ${err.message}
+          요청 URL: <b class="mono">${CSV_URL}</b><br/>
+          에러: ${err.message}<br/>
+          현재 경로: <span class="mono">${location.pathname}</span>
         </div>
       </div>`;
-    alert("CSV를 불러오지 못했습니다.\n\n- /Church-of-God-Map/data/churches.csv 가 실제로 열리는지\n- data/churches.csv 파일명이 정확한지(대소문자 포함)\n확인해주세요.\n\n에러: " + err.message);
+    alert(
+      "CSV를 불러오지 못했습니다.\n\n" +
+      "- 위 요청 URL을 브라우저에 직접 넣었을 때 열리는지 확인\n" +
+      "- data/churches.csv가 Pages 배포 위치에 실제로 있는지 확인\n\n" +
+      "에러: " + err.message
+    );
   });
 </script>
-
 </body>
 </html>
-
