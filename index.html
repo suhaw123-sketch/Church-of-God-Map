@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>전세계/서울 교회 현황 지도 v3 (자동화: CSV 로드 + 필터 + 우측목록 + 적정교회수)</title>
+  <title>전세계/서울 교회 현황 지도 v3 (자동화: CSV 로드 + 필터 + 우측목록)</title>
 
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -118,8 +118,8 @@
     <header>
       <h1>전세계/서울 교회 현황 지도 v3</h1>
       <div class="sub">
-        CSV 자동 로드: <b>data/churches.csv</b><br/>
-        적정 교회 수 기준: 수도권(서울·경기·인천) 1개/1000명, 지방 1개/300명
+        CSV 자동 로드: <b id="csvPathLabel"></b><br/>
+        (대륙/나라/검색/목록 클릭 줌)
       </div>
     </header>
 
@@ -176,7 +176,7 @@
         <div class="card">
           <div class="k">추정 적정 교회수</div>
           <div class="v" id="statNeedCount">0</div>
-          <div class="s">수도권/지방 기준</div>
+          <div class="s">인구(population/인구) 열이 있을 때만 계산</div>
         </div>
       </div>
     </section>
@@ -184,26 +184,21 @@
     <section class="list" id="list"></section>
 
     <div class="footerNote">
-      ✅ CSV만 수정하면 자동 반영됩니다.<br/>
-      ⚠️ GitHub Pages에서 CSV는 반드시 같은 저장소/경로에 있어야 하며,
-      <b>data/churches.csv</b> 경로를 유지하세요.
+      ✅ /index 에서 열리는 구조라면 CSV는 <b>../data/churches.csv</b> 로 불러옵니다.<br/>
+      ⚠️ CSV가 404면 “Network 탭”에서 요청 경로를 확인하세요.
     </div>
   </aside>
 </div>
 
 <script>
   // =========================
-  // 0) 설정
+  // 0) 설정: 지금 주소가 .../Church-of-God-Map/index 이므로 한 단계 위의 data를 읽는다
   // =========================
-const CSV_URL = "../data/churches.csv";
+  const CSV_URL = "../data/churches.csv";
+  document.getElementById("csvPathLabel").textContent = CSV_URL;
 
-  // 수도권 판정(원하면 여기 추가/변경)
+  // 수도권 판정(원하면 추가/변경)
   const CAPITAL_REGIONS = new Set(["서울", "서울특별시", "경기", "경기도", "인천", "인천광역시"]);
-
-  // 인구 데이터(선택)
-  // - CSV에 population(인구) 열이 있으면 그걸 사용
-  // - 없으면 0으로 처리(적정교회수 계산이 0이 될 수 있음)
-  // - 나중에 "district_population" 같은 열을 추가해도 여기에서 읽도록 확장 가능
 
   // =========================
   // 1) 유틸
@@ -228,11 +223,9 @@ const CSV_URL = "../data/churches.csv";
   function isCapitalArea(row) {
     const city = safeStr(row.city);
     const country = safeStr(row.country);
-    // 한국일 때만 수도권 판정 적용 (원하면 다른 나라 로직 추가 가능)
     if (!/korea/i.test(country) && country !== "South Korea" && country !== "Korea" && country !== "대한민국") {
       return false;
     }
-    // city 값이 "서울", "경기", "인천" 계열이면 수도권
     for (const key of CAPITAL_REGIONS) {
       if (city.includes(key)) return true;
     }
@@ -240,17 +233,14 @@ const CSV_URL = "../data/churches.csv";
   }
 
   function calcNeedChurchCount(row) {
-    // 1) 인구가 있으면 기준에 따라 적정 교회수 계산
-    // 2) 인구가 없으면 0
+    // CSV에 population 또는 인구 열이 있을 때만 계산
     const pop = toNumber(row.population, 0);
     if (!pop) return 0;
-
     const denom = isCapitalArea(row) ? 1000 : 300;
     return Math.max(0, Math.round(pop / denom));
   }
 
   function buildSearchText(row) {
-    // toggleSearchFullText 꺼져있으면 "주소 중심"
     const full = document.getElementById("toggleSearchFullText")?.checked;
     const partsBasic = [row.address, row.name].map(safeStr).filter(Boolean);
     const partsFull = [row.continent, row.country, row.city, row.district, row.address, row.name].map(safeStr).filter(Boolean);
@@ -258,52 +248,40 @@ const CSV_URL = "../data/churches.csv";
   }
 
   function makeGoogleQuery(row) {
-    // 기본은 주소만(지역+주소 합쳐져서 불편했던 부분 완화)
-    // toggleSearchFullText 켜면 city/district도 포함
     const full = document.getElementById("toggleSearchFullText")?.checked;
     const addr = safeStr(row.address);
     const city = safeStr(row.city);
     const dist = safeStr(row.district);
     const name = safeStr(row.name);
 
-    const q = full
-      ? [name, city, dist, addr].filter(Boolean).join(" ")
-      : [addr || name].filter(Boolean).join(" ");
-
+    const q = full ? [name, city, dist, addr].filter(Boolean).join(" ")
+                   : [addr || name].filter(Boolean).join(" ");
     return encodeURIComponent(q || name || addr || "");
   }
 
   function makeOSMQuery(row) {
-    // OSM Nominatim 검색 링크
     const full = document.getElementById("toggleSearchFullText")?.checked;
     const addr = safeStr(row.address);
     const city = safeStr(row.city);
     const dist = safeStr(row.district);
     const name = safeStr(row.name);
 
-    const q = full
-      ? [name, city, dist, addr].filter(Boolean).join(" ")
-      : [addr || name].filter(Boolean).join(" ");
-
+    const q = full ? [name, city, dist, addr].filter(Boolean).join(" ")
+                   : [addr || name].filter(Boolean).join(" ");
     return encodeURIComponent(q || name || addr || "");
   }
 
   // =========================
-  // 2) CSV 파서(따옴표/콤마 기본 지원)
+  // 2) CSV 파서(따옴표/콤마 기본 지원) + BOM 안전
   // =========================
   function parseCSV(text) {
-    // 간단 robust CSV parser (quotes supported)
     const rows = [];
     let cur = [];
     let val = "";
     let inQuotes = false;
 
-    function pushVal() {
-      cur.push(val);
-      val = "";
-    }
+    function pushVal() { cur.push(val); val = ""; }
     function pushRow() {
-      // 빈 줄 제외
       if (cur.length === 1 && safeStr(cur[0]) === "") { cur = []; return; }
       rows.push(cur);
       cur = [];
@@ -315,37 +293,26 @@ const CSV_URL = "../data/churches.csv";
       if (inQuotes) {
         if (ch === '"') {
           const next = text[i+1];
-          if (next === '"') { // escaped quote
-            val += '"';
-            i++;
-          } else {
-            inQuotes = false;
-          }
+          if (next === '"') { val += '"'; i++; }
+          else { inQuotes = false; }
         } else {
           val += ch;
         }
       } else {
-        if (ch === '"') {
-          inQuotes = true;
-        } else if (ch === ",") {
-          pushVal();
-        } else if (ch === "\n") {
-          pushVal();
-          pushRow();
-        } else if (ch === "\r") {
-          // ignore
-        } else {
-          val += ch;
-        }
+        if (ch === '"') inQuotes = true;
+        else if (ch === ",") pushVal();
+        else if (ch === "\n") { pushVal(); pushRow(); }
+        else if (ch === "\r") { /* ignore */ }
+        else val += ch;
       }
     }
-    // last
-    pushVal();
-    pushRow();
+    pushVal(); pushRow();
 
     if (!rows.length) return [];
 
-    const header = rows[0].map(h => safeStr(h));
+    // 헤더 BOM 제거(﻿)
+    const header = rows[0].map(h => safeStr(h).replace(/^\uFEFF/, ""));
+
     const data = [];
     for (let r=1; r<rows.length; r++) {
       const obj = {};
@@ -362,7 +329,6 @@ const CSV_URL = "../data/churches.csv";
   // 3) 지도/레이어
   // =========================
   const map = L.map("map", { zoomControl: true }).setView([20, 0], 2);
-
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: '&copy; OpenStreetMap contributors'
@@ -370,15 +336,11 @@ const CSV_URL = "../data/churches.csv";
 
   const markerLayer = L.layerGroup().addTo(map);
 
-  // 데이터 원본/필터 결과
   let allRows = [];
   let filteredRows = [];
-
-  // 마커 인덱스(목록 클릭 시 줌)
   const markerByKey = new Map();
 
   function rowKey(row, idx) {
-    // 고유키: no가 있으면 우선, 없으면 name+address+idx
     const no = safeStr(row.no);
     if (no) return `no:${no}`;
     return `k:${safeStr(row.name)}|${safeStr(row.address)}|${idx}`;
@@ -400,7 +362,6 @@ const CSV_URL = "../data/churches.csv";
       opt.textContent = v;
       selectEl.appendChild(opt);
     }
-    // 가능하면 이전 선택 유지
     if ([...selectEl.options].some(o => o.value === prev)) selectEl.value = prev;
   }
 
@@ -444,7 +405,6 @@ const CSV_URL = "../data/churches.csv";
       const lng = toNumber(row.lng, 0);
 
       const key = rowKey(row, idx);
-
       const churchCount = toNumber(row["교회수"], toNumber(row.churches, 1)) || 1;
       const need = calcNeedChurchCount(row);
 
@@ -483,15 +443,14 @@ const CSV_URL = "../data/churches.csv";
     filteredRows.forEach((row, idx) => {
       const key = rowKey(row, idx);
       const title = safeStr(row.name) || "이름 없음";
-      const loc = [row.country, row.city, row.district].map(safeStr).filter(Boolean).join(" / ");
+      const loc = [row.continent, row.country, row.city, row.district].map(safeStr).filter(Boolean).join(" / ");
       const addr = safeStr(row.address);
 
       const churchCount = toNumber(row["교회수"], toNumber(row.churches, 1)) || 1;
       const need = calcNeedChurchCount(row);
 
       const badges = [];
-      if (hasCoord(row)) badges.push(`<span class="pill">좌표✅</span>`);
-      else badges.push(`<span class="pill">좌표❌</span>`);
+      badges.push(hasCoord(row) ? `<span class="pill">좌표✅</span>` : `<span class="pill">좌표❌</span>`);
       if (need) badges.push(`<span class="pill">적정 ${need}</span>`);
       badges.push(`<span class="pill">교회수 ${churchCount}</span>`);
 
@@ -553,11 +512,14 @@ const CSV_URL = "../data/churches.csv";
   async function loadCSV() {
     const res = await fetch(CSV_URL, { cache: "no-store" });
     if (!res.ok) throw new Error(`CSV 로드 실패: ${res.status} ${res.statusText}`);
-    const text = await res.text();
+
+    // BOM 제거(﻿)
+    const textRaw = await res.text();
+    const text = textRaw.replace(/^\uFEFF/, "");
+
     const data = parseCSV(text);
 
-    // 열 이름이 한글/영문 섞일 수 있으니, 흔한 별칭 맞춰두기
-    // 사용자의 CSV 예시: no,name,code,continent,country,city,district,교회수,address,lat,lng,dedication_date,link,status
+    // 열 이름 별칭 대응
     allRows = data.map(r => ({
       no: r.no ?? r["No"] ?? r["번호"] ?? "",
       name: r.name ?? r["교회명"] ?? "",
@@ -573,7 +535,8 @@ const CSV_URL = "../data/churches.csv";
       dedication_date: r.dedication_date ?? r["dedication"] ?? "",
       link: r.link ?? "",
       status: r.status ?? "",
-      population: r.population ?? r["인구"] ?? "" // 선택: 있으면 사용
+      // 인구(선택)
+      population: r.population ?? r["인구"] ?? ""
     }));
 
     // 필터 옵션 채우기
@@ -595,7 +558,6 @@ const CSV_URL = "../data/churches.csv";
     const searchInput = document.getElementById("searchInput");
 
     continentSelect.addEventListener("change", () => {
-      // 대륙 선택 시 나라 목록을 대륙에 맞춰 좁히기
       const continent = continentSelect.value;
       const scoped = (continent === "__ALL__")
         ? allRows
@@ -604,7 +566,6 @@ const CSV_URL = "../data/churches.csv";
       const countries = uniqueSorted(scoped.map(r => safeStr(r.country)));
       populateSelect(countrySelect, countries);
 
-      // 나라 선택이 대륙에 맞지 않으면 전체로 리셋
       if (![...countrySelect.options].some(o => o.value === countrySelect.value)) {
         countrySelect.value = "__ALL__";
       }
@@ -629,10 +590,19 @@ const CSV_URL = "../data/churches.csv";
   bindEvents();
   loadCSV().catch(err => {
     console.error(err);
-    alert("CSV를 불러오지 못했습니다.\n\n- data/churches.csv 경로가 맞는지\n- GitHub Pages에서 파일이 실제로 올라갔는지\n- CSV 첫 줄(헤더)에 lat,lng 컬럼이 있는지\n확인해주세요.\n\n에러: " + err.message);
+    const listEl = document.getElementById("list");
+    listEl.innerHTML = `
+      <div class="card">
+        <div class="k">CSV 로드 실패</div>
+        <div class="s">
+          요청 URL: <b>${CSV_URL}</b><br/>
+          에러: ${err.message}
+        </div>
+      </div>
+    `;
+    alert("CSV를 불러오지 못했습니다.\n\n- ../data/churches.csv 경로가 맞는지\n- GitHub Pages에 파일이 올라갔는지\n- 대소문자 경로가 정확한지\n확인해주세요.\n\n에러: " + err.message);
   });
 </script>
 
 </body>
 </html>
-
