@@ -1,138 +1,178 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>전세계/서울 교회 현황 지도 v3 (자동 업데이트 + CSV)</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>교회 현황 지도 v3 자동화</title>
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <!-- MarkerCluster -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-
-  <!-- PapaParse (CSV 파싱용) -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-
-  <style>
-    html, body { height: 100%; margin: 0; padding: 0; }
-    #map { height: 100%; width: 75%; float: left; }
-    #sidebar { height: 100%; width: 25%; float: left; overflow-y: auto; padding: 10px; box-sizing: border-box; border-left: 1px solid #ccc; }
-    .church-item { cursor: pointer; margin-bottom: 8px; padding: 4px; border-bottom: 1px solid #eee; }
-    .church-item:hover { background-color: #f0f0f0; }
-    #filters { margin-bottom: 10px; }
-  </style>
+<style>
+:root{--border:#e9e9e9;--muted:#666;--bg:#fff;--chip:#f6f6f6;--radius:12px;--header-h:210px;--side-w:360px;}
+html,body{height:100%;margin:0;font-family:system-ui,sans-serif;background:var(--bg);overflow:hidden;}
+header{position:fixed;top:0;left:0;right:0;z-index:2000;padding:14px 14px 10px;border-bottom:1px solid var(--border);background:#fff;display:grid;gap:10px;}
+.titleRow{display:flex;justify-content:space-between;align-items:center;gap:12px;}
+.title{font-weight:800;font-size:22px;letter-spacing:-.3px;}
+.small{font-size:12px;color:var(--muted);}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+input[type="file"], input[type="text"], select, button{padding:10px 12px;border-radius:10px;background:#fff;outline:none;border:1px solid #ddd;}
+button{cursor:pointer;}
+button:disabled{opacity:.5;cursor:not-allowed;}
+input[type="text"]{flex:1;min-width:260px;}
+select{min-width:140px;}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--chip);border:1px solid #eee;border-radius:999px;padding:2px 8px;font-size:12px;color:#333;}
+.dash{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.card{border:1px solid var(--border);border-radius:var(--radius);padding:12px;background:#fff;}
+.cardTitle{font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.mono{font-family:ui-monospace,monospace;}
+.list{margin:0;padding-left:18px;}
+.list li{margin:3px 0;}
+#wrap{position:fixed;top:var(--header-h);left:0;right:0;bottom:0;display:flex;min-height:0;}
+#mapWrap{flex:1 1 auto;position:relative;min-width:0;border-right:1px solid var(--border);}
+#map{height:100%;width:100%;background:#eef;}
+#side{width:var(--side-w);max-width:48vw;background:#fff;display:flex;flex-direction:column;min-height:0;}
+.sideHeader{padding:12px 12px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.sideTitle{font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px;}
+.sideMeta{font-size:12px;color:var(--muted);white-space:nowrap;}
+#resultList{overflow:auto;padding:10px 10px 14px;display:flex;flex-direction:column;gap:8px;}
+.item{border:1px solid #eee;border-radius:12px;padding:10px;cursor:pointer;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.03);}
+.item:hover{background:#fafafa;}
+.item.active{border-color:#222;box-shadow:0 2px 12px rgba(0,0,0,.10);}
+.itemName{font-weight:800;font-size:13px;margin-bottom:4px;}
+.itemAddr{font-size:12px;color:#444;line-height:1.35;}
+.itemSub{font-size:11px;color:var(--muted);margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;}
+.pill{font-size:11px;border:1px solid #eee;background:#f7f7f7;padding:2px 6px;border-radius:999px;}
+@media (max-width:900px){.dash{grid-template-columns:1fr;}#side{width:44vw;}}
+@media (max-width:720px){#wrap{flex-direction:column;}#mapWrap{border-right:none;border-bottom:1px solid var(--border);height:58%;}#side{width:100%;max-width:none;height:42%;}}
+</style>
 </head>
 <body>
-  <div id="map"></div>
-  <div id="sidebar">
-    <div id="filters">
-      <label for="countryFilter">나라: </label>
-      <select id="countryFilter"><option value="">전체</option></select>
-      <br>
-      <label for="cityFilter">지역: </label>
-      <select id="cityFilter"><option value="">전체</option></select>
-    </div>
-    <div id="churchList"></div>
+<header>
+<div class="titleRow">
+  <div class="title">교회 현황 지도 v3 자동화</div>
+  <div class="small" id="status">대기 중…</div>
+</div>
+<div class="row">
+  <input id="file" type="file" accept=".csv,.json" />
+  <input id="popFile" type="file" accept=".csv,.json" />
+  <select id="countryFilter"><option value="all">모든 나라</option></select>
+  <select id="cityFilter" disabled><option value="all">모든 도시</option></select>
+  <select id="districtFilter" disabled><option value="all">모든 구/지역</option></select>
+  <select id="typeFilter"><option value="all">전체 유형</option><option value="new">새성전</option><option value="hall">현당</option><option value="church">교회</option></select>
+  <input id="qAll" type="text" placeholder="검색 (예: 강남 / Seoul / 새성전 / 헌당)" />
+  <button id="btnSearch">검색</button>
+  <button id="btnReset" disabled>검색 해제</button>
+  <button id="btnFit" disabled>전체 맞춤</button>
+  <button id="btnClear" disabled>비우기</button>
+</div>
+<div class="dash">
+  <div class="card">
+    <div class="cardTitle">📊 통계 <span class="chip mono" id="chipValid">valid 0</span></div>
+    <div class="small" id="statText">데이터 로딩 후 계산됩니다.</div>
+    <div class="small mono" id="typeCounts">새성전 0 / 현당 0 / 교회 0</div>
+    <div class="small mono" id="popStats"></div>
   </div>
+</div>
+</header>
+<div id="wrap">
+<div id="mapWrap"><div id="map"></div></div>
+<aside id="side">
+<div class="sideHeader">
+  <div class="sideTitle">📌 연쇄 표시 목록</div>
+  <div class="sideMeta" id="sideMeta">0개</div>
+</div>
+<div id="resultList"></div>
+</aside>
+</div>
 
-  <script>
-    var map = L.map('map').setView([37.5665, 126.9780], 11);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+<script>
+const $=id=>document.getElementById(id);
+const map = L.map('map').setView([37.5,127],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'&copy; OpenStreetMap'}).addTo(map);
+const cluster = L.markerClusterGroup({chunkedLoading:true});
+map.addLayer(cluster);
 
-    var markers = L.markerClusterGroup();
-    var allChurches = [];
+let allItems=[],populationMap=new Map();
+const SEOUL_AREA=['Seoul','Gyeonggi','Incheon'];
 
-    // CSV 불러오기 + 자동 업데이트
-    async function loadChurchData() {
-      try {
-        const res = await fetch('data/churches.csv');
-        const csvText = await res.text();
-        const parsed = Papa.parse(csvText, {header:true, skipEmptyLines:true});
-        allChurches = parsed.data;
-        
-        await geocodeMissing(allChurches);
-        updateFilters();
-        updateMap();
-      } catch(e){
-        console.error('CSV 로드 오류:', e);
-      }
-    }
+function parseCSV(text){return text.trim().split(/\r?\n/).map(l=>l.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));}
+function rowsToObjects(rows){const header=rows[0];return rows.slice(1).map(r=>{const o={};header.forEach((h,i)=>o[h]=r[i]);return o;});}
 
-    // 주소 → 좌표 변환
-    async function geocodeMissing(churches){
-      const delay = ms => new Promise(r=>setTimeout(r, ms));
-      for(let church of churches){
-        if(!church.lat || !church.lng){
-          const query = encodeURIComponent(church.address);
-          const url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}`;
-          try {
-            const res = await fetch(url, {headers:{'Accept-Language':'ko'}});
-            const data = await res.json();
-            if(data.length>0){
-              church.lat = data[0].lat;
-              church.lng = data[0].lon;
-            }
-          } catch(e){ console.error('Geocoding error:', e); }
-          await delay(1000);
-        }
-      }
-    }
+function normalizeItem(it){
+  const country=it.country||'';
+  const city=it.city||'';
+  const district=it.district||'';
+  const lat=parseFloat(it.lat||it.latitude);
+  const lng=parseFloat(it.lng||it.longitude);
+  const status=it.status||'';
+  const type=status.includes('새성전')?'new':status.includes('현당')?'hall':'church';
+  const key=`${country}|${city}|${district}`;
+  let population=populationMap.get(key)||null;
+  let people_per_church=null;
+  if(population!==null) people_per_church = SEOUL_AREA.includes(city)?1000:300;
+  return {name:it.name||'Unnamed', addr:it.address||'', country, city, district, lat, lng, status, type, key, population, people_per_church};
+}
 
-    // 필터 업데이트
-    function updateFilters(){
-      const countrySelect = document.getElementById('countryFilter');
-      const citySelect = document.getElementById('cityFilter');
+async function handleFile(file){if(!file)return;allItems=rowsToObjects(parseCSV(await file.text()));updateFilters();applyFilters();}
+async function handlePopFile(file){if(!file)return;(rowsToObjects(parseCSV(await file.text()))).forEach(o=>{populationMap.set(`${o.country}|${o.city}|${o.district||''}`,parseInt(o.population));});applyFilters();}
 
-      countrySelect.innerHTML = '<option value="">전체</option>';
-      citySelect.innerHTML = '<option value="">전체</option>';
+function updateFilters(){
+  const countries = Array.from(new Set(allItems.map(it=>it.country))).sort();
+  $('countryFilter').innerHTML='<option value="all">모든 나라</option>'+countries.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
 
-      const countries = [...new Set(allChurches.map(c=>c.country).filter(c=>c))];
-      const cities = [...new Set(allChurches.map(c=>c.city).filter(c=>c))];
+function filterItems(){
+  let items=allItems.map(normalizeItem).filter(it=>it.lat&&it.lng);
+  const country=$('countryFilter').value;
+  const city=$('cityFilter').value;
+  const district=$('districtFilter').value;
+  const type=$('typeFilter').value;
+  const q=$('qAll').value.trim().toLowerCase();
+  if(country!=='all') items=items.filter(it=>it.country===country);
+  if(city!=='all') items=items.filter(it=>it.city===city);
+  if(district!=='all') items=items.filter(it=>it.district===district);
+  if(type!=='all') items=items.filter(it=>it.type===type);
+  if(q) items=items.filter(it=>(it.name+it.addr+it.status).toLowerCase().includes(q));
+  return items;
+}
 
-      countries.forEach(c=>countrySelect.appendChild(new Option(c,c)));
-      cities.forEach(c=>citySelect.appendChild(new Option(c,c)));
+function applyFilters(){
+  const norm = filterItems();
+  cluster.clearLayers();
 
-      countrySelect.onchange = updateMap;
-      citySelect.onchange = updateMap;
-    }
+  const typeCount={new:0,hall:0,church:0}; let totalPop=0;
+  norm.forEach(it=>{typeCount[it.type]++; if(it.people_per_church) totalPop+=it.people_per_church; });
 
-    // 지도 + 목록 업데이트
-    function updateMap(){
-      markers.clearLayers();
-      const country = document.getElementById('countryFilter').value;
-      const city = document.getElementById('cityFilter').value;
+  $('chipValid').textContent=`valid ${norm.length}`;
+  $('typeCounts').textContent=`새성전 ${typeCount.new} / 현당 ${typeCount.hall} / 교회 ${typeCount.church}`;
+  $('popStats').textContent=`예상 수용 인구: ${totalPop.toLocaleString()}명`;
 
-      const filtered = allChurches.filter(c=>c.lat && c.lng)
-                                  .filter(c=>(!country || c.country===country) && (!city || c.city===city));
+  const sideList=$('resultList');
+  sideList.innerHTML='';
+  norm.forEach(it=>{
+    const marker = L.marker([it.lat,it.lng]).bindPopup(`<b>${it.name}</b><br>${it.addr}<br>${it.people_per_church?`교회당:${it.people_per_church}`:''}`);
+    cluster.addLayer(marker);
+    const li=document.createElement('div');li.className='item';
+    li.innerHTML=`<div class="itemName">${it.name}</div><div class="itemAddr">${it.addr}</div>`;
+    li.addEventListener('click',()=>{map.setView([it.lat,it.lng],16);marker.openPopup();});
+    sideList.appendChild(li);
+  });
+  $('sideMeta').textContent=`${norm.length}개`;
+}
 
-      const churchList = document.getElementById('churchList');
-      churchList.innerHTML = '';
+$('file').addEventListener('change',e=>handleFile(e.target.files[0]));
+$('popFile').addEventListener('change',e=>handlePopFile(e.target.files[0]));
 
-      filtered.forEach(church=>{
-        const marker = L.marker([parseFloat(church.lat), parseFloat(church.lng)])
-                        .bindPopup("<b>"+church.name+"</b><br>"+church.address);
-        markers.addLayer(marker);
+['countryFilter','cityFilter','districtFilter','typeFilter'].forEach(f=>$(f).addEventListener('change',applyFilters));
+$('btnSearch').addEventListener('click',applyFilters);
+$('qAll').addEventListener('keyup',e=>{if(e.key==='Enter')applyFilters();});
+$('btnReset').addEventListener('click',()=>{$('qAll').value='';$('countryFilter').value='all';$('cityFilter').value='all';$('districtFilter').value='all';$('typeFilter').value='all';applyFilters();});
+$('btnFit').addEventListener('click',()=>{map.fitBounds(cluster.getBounds());});
 
-        const div = document.createElement('div');
-        div.className = 'church-item';
-        div.textContent = church.name;
-        div.onclick = ()=>{ map.setView([parseFloat(church.lat), parseFloat(church.lng)],16); marker.openPopup(); }
-        churchList.appendChild(div);
-      });
-
-      map.addLayer(markers);
-    }
-
-    // 30초마다 CSV 자동 재로드
-    setInterval(loadChurchData, 30000);
-    loadChurchData(); // 초기 로드
-  </script>
+</script>
 </body>
 </html>
