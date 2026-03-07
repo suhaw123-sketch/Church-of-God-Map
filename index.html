@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>전세계/서울 교회 현황 지도 v3 (최종)</title>
+  <title>전세계/서울 교회 현황 지도 v3 (최종 · 1%)</title>
 
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -151,8 +151,8 @@
   const CHURCH_CSV_URL = "/Church-of-God-Map/data/churches.csv";
   const POP_CSV_URL    = "/Church-of-God-Map/data/population.csv";
 
-  // 규칙
-  const POP_RATE = 0.01; // 전체 인구 중 3%
+  // ✅ 1% 기준
+  const POP_RATE = 0.01; // 전체 인구 중 1%
   const CAPITAL_CITIES = new Set(["서울","서울특별시","경기","경기도","인천","인천광역시"]);
 
   function setStatus(msg){ $("status").textContent = msg; }
@@ -166,15 +166,13 @@
       .replaceAll("'","&#39;");
   }
 
-  // ✅ 텍스트 정규화(공백/숨은문자)
   function normText(s){
     return String(s||"")
-      .replace(/\u00A0/g, " ")  // NBSP
+      .replace(/\u00A0/g, " ")
       .replace(/\s+/g, " ")
       .trim();
   }
 
-  // ✅ city 정규화(Seoul ↔ 서울, 서울특별시 → 서울)
   function normCity(country, city){
     const ctry = String(country||"").trim().toLowerCase();
     let c = normText(city);
@@ -187,7 +185,6 @@
     return c;
   }
 
-  // ✅ district 정규화(공백 제거 + '강남 구'→'강남구' 등)
   function normDistrict(d){
     let x = normText(d);
     x = x.replace(/\s+(구|군|시)$/, "$1");
@@ -208,12 +205,11 @@
 
   function calcNeedChurchesFromPopulation(population, capital){
     if(!Number.isFinite(population) || population <= 0) return 0;
-    const targetPeople = population * POP_RATE;
+    const targetPeople = population * POP_RATE; // 1%
     const denom = capital ? 1000 : 300;
     return Math.ceil(targetPeople / denom);
   }
 
-  // CSV/TSV 자동 파서
   function parseTable(text){
     text = String(text||"").replace(/^\uFEFF/,"").trim();
     if(!text) return [];
@@ -231,7 +227,6 @@
       });
     }
 
-    // CSV(콤마) - 따옴표 지원
     const rows = [];
     let cur = [], val = "", inQuotes = false;
     const pushVal = ()=>{ cur.push(val); val=""; };
@@ -267,8 +262,7 @@
     });
   }
 
-  // 데이터
-  let populationMap = new Map(); // key: country|city|district
+  let populationMap = new Map();
   let allItems = [];
   let lastRendered = [];
 
@@ -279,7 +273,6 @@
     return `${ctry}|${cty}|${dist}`;
   }
 
-  // 지도
   const map = L.map('map',{worldCopyJump:true}).setView([20,0],2);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,noWrap:true,attribution:'&copy; OpenStreetMap'}).addTo(map);
   const cluster = L.markerClusterGroup({showCoverageOnHover:false,disableClusteringAtZoom:16,chunkedLoading:true});
@@ -313,7 +306,6 @@
     setStatus(`인구 데이터 로드 ✅ ${populationMap.size}개`);
   }
 
-  // 업로드 옵션(선택)
   async function handleChurchUpload(file){
     if(!file) return;
     setStatus("교회 업로드 읽는 중…");
@@ -342,7 +334,6 @@
   $("file").addEventListener("change", e=>handleChurchUpload(e.target.files[0]));
   $("popFile").addEventListener("change", e=>handlePopUpload(e.target.files[0]));
 
-  // TOP 집계
   function inc(map, key, by=1){
     const k = String(key??"").trim();
     if(!k) return;
@@ -386,7 +377,6 @@
       return blob.includes(q);
     });
 
-    // 통계
     let cNew=0, cHall=0, cChurch=0;
     let sumNeed=0, sumNeedCapital=0, sumNeedLocal=0;
     let matchedPop=0;
@@ -422,7 +412,6 @@
       lastRendered.push({item:it, marker});
     });
 
-    // 목록
     const listEl = $("resultList");
     normalized.forEach((it, idx)=>{
       const div = document.createElement("div");
@@ -447,7 +436,6 @@
       listEl.appendChild(div);
     });
 
-    // UI 업데이트
     $("legendNew").textContent = String(cNew);
     $("legendHall").textContent = String(cHall);
     $("legendChurch").textContent = String(cChurch);
@@ -479,7 +467,6 @@
     }
   }
 
-  // 버튼/이벤트
   $("btnLoadWorld").addEventListener("click", async ()=>{
     try{
       await loadChurchCSVFromURL();
@@ -508,7 +495,6 @@
   });
   $("typeFilter").addEventListener("change", ()=>render(allItems));
 
-  // 자동 로드
   (async ()=>{
     try{
       await loadChurchCSVFromURL();
@@ -522,4 +508,3 @@
 </script>
 </body>
 </html>
-
