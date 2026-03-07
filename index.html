@@ -184,7 +184,7 @@
     <section class="list" id="list"></section>
 
     <div class="footerNote">
-      ✅ CSV는 <b>/Church-of-God-Map/data/churches.csv</b> 로 불러옵니다.<br/>
+      ✅ CSV는 <b>/data/churches.csv</b> 로 불러옵니다.<br/>
       ⚠️ CSV가 404면 “Network 탭”에서 요청 경로를 확인하세요.
     </div>
   </aside>
@@ -194,7 +194,7 @@
   // =========================
   // 0) 설정: 절대경로 고정(루트/ /index 어디서 열어도 안 깨짐)
   // =========================
-  const CSV_URL = "/Church-of-God-Map/data/churches.csv";
+  const CSV_URL = "data/churches.csv";
   document.getElementById("csvPathLabel").textContent = CSV_URL;
 
   // 수도권 판정(원하면 추가/변경)
@@ -606,3 +606,4 @@
 
 </body>
 </html>
+
