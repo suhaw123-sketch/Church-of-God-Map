@@ -183,7 +183,7 @@
     return repo ? `/${repo}/` : "/";
   }
   const BASE = detectRepoBasePath();
-  const CSV_URL = `${BASE}data/churches.csv`;
+  const CSV_URL = "/Church-of-God-Map/data/churches.csv";
   document.getElementById("csvPathLabel").textContent = CSV_URL;
 
   const CAPITAL_REGIONS = new Set(["서울","서울특별시","경기","경기도","인천","인천광역시"]);
@@ -528,3 +528,4 @@
 </script>
 </body>
 </html>
+
