@@ -46,7 +46,6 @@
     #resultList{overflow:auto;padding:10px 10px 14px;display:flex;flex-direction:column;gap:8px;}
     .item{border:1px solid #eee;border-radius:12px;padding:10px;cursor:pointer;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.03);}
     .item:hover{background:#fafafa;}
-    .item.active{border-color:#222;box-shadow:0 2px 12px rgba(0,0,0,.10);}
     .itemName{font-weight:800;font-size:13px;margin-bottom:4px;}
     .itemAddr{font-size:12px;color:#444;line-height:1.35;}
     .itemSub{font-size:11px;color:var(--muted);margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;}
@@ -80,7 +79,6 @@
     <button id="btnSeoulOnly" disabled>서울만 보기</button>
     <button id="btnShowAll" disabled>전체 보기</button>
 
-    <!-- 업로드 옵션도 유지 -->
     <input id="file" type="file" accept=".csv,.json,.tsv" />
     <input id="popFile" type="file" accept=".csv,.json,.tsv" />
 
@@ -125,7 +123,7 @@
 <div id="wrap">
   <div id="mapWrap">
     <div id="map"></div>
-    <div class="mapLegend" aria-label="legend">
+    <div class="mapLegend">
       <div class="legendItem">🔴 새성전 <span class="legendCount" id="legendNew">0</span></div>
       <div class="legendItem">🔵 현당/헌당 <span class="legendCount" id="legendHall">0</span></div>
       <div class="legendItem">🟡 교회 <span class="legendCount" id="legendChurch">0</span></div>
@@ -149,11 +147,11 @@
 <script>
   const $ = id => document.getElementById(id);
 
-  // === 경로(절대경로) ===
+  // 경로(절대경로)
   const CHURCH_CSV_URL = "/Church-of-God-Map/data/churches.csv";
   const POP_CSV_URL    = "/Church-of-God-Map/data/population.csv";
 
-  // === 규칙 ===
+  // 규칙
   const POP_RATE = 0.03; // 전체 인구 중 3%
   const CAPITAL_CITIES = new Set(["서울","서울특별시","경기","경기도","인천","인천광역시"]);
 
@@ -168,14 +166,33 @@
       .replaceAll("'","&#39;");
   }
 
-  // ✅ city 정규화(Seoul ↔ 서울)
+  // ✅ 텍스트 정규화(공백/숨은문자)
+  function normText(s){
+    return String(s||"")
+      .replace(/\u00A0/g, " ")  // NBSP
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  // ✅ city 정규화(Seoul ↔ 서울, 서울특별시 → 서울)
   function normCity(country, city){
     const ctry = String(country||"").trim().toLowerCase();
-    let c = String(city||"").trim();
+    let c = normText(city);
+
     if(ctry.includes("korea") || ctry.includes("대한민국")){
-      if(c.toLowerCase()==="seoul") c = "서울";
+      const low = c.toLowerCase();
+      if(low === "seoul" || low === "seoul-si" || low === "seoul city") c = "서울";
+      if(c === "서울특별시") c = "서울";
     }
     return c;
+  }
+
+  // ✅ district 정규화(공백 제거 + '강남 구'→'강남구' 등)
+  function normDistrict(d){
+    let x = normText(d);
+    x = x.replace(/\s+(구|군|시)$/, "$1");
+    x = x.replace(/\s/g, "");
+    return x;
   }
 
   function isCapitalArea(countryRaw, cityRaw){
@@ -196,7 +213,7 @@
     return Math.ceil(targetPeople / denom);
   }
 
-  // ✅ CSV/TSV 자동 파서(탭이면 TSV로 처리)
+  // CSV/TSV 자동 파서
   function parseTable(text){
     text = String(text||"").replace(/^\uFEFF/,"").trim();
     if(!text) return [];
@@ -217,7 +234,6 @@
     // CSV(콤마) - 따옴표 지원
     const rows = [];
     let cur = [], val = "", inQuotes = false;
-
     const pushVal = ()=>{ cur.push(val); val=""; };
     const pushRow = ()=>{
       if(cur.length===1 && String(cur[0]||"").trim()===""){ cur=[]; return; }
@@ -251,16 +267,19 @@
     });
   }
 
-  // === 데이터 ===
+  // 데이터
   let populationMap = new Map(); // key: country|city|district
   let allItems = [];
   let lastRendered = [];
 
   function popKey(country, city, district){
-    return `${String(country||"").trim()}|${normCity(country, city)}|${String(district||"").trim()}`;
+    const ctry = normText(country);
+    const cty  = normCity(ctry, normText(city));
+    const dist = normDistrict(district);
+    return `${ctry}|${cty}|${dist}`;
   }
 
-  // === 지도 ===
+  // 지도
   const map = L.map('map',{worldCopyJump:true}).setView([20,0],2);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,noWrap:true,attribution:'&copy; OpenStreetMap'}).addTo(map);
   const cluster = L.markerClusterGroup({showCoverageOnHover:false,disableClusteringAtZoom:16,chunkedLoading:true});
@@ -323,7 +342,7 @@
   $("file").addEventListener("change", e=>handleChurchUpload(e.target.files[0]));
   $("popFile").addEventListener("change", e=>handlePopUpload(e.target.files[0]));
 
-  // === TOP 집계 ===
+  // TOP 집계
   function inc(map, key, by=1){
     const k = String(key??"").trim();
     if(!k) return;
@@ -333,14 +352,13 @@
     return Array.from(map.entries()).sort((a,b)=>b[1]-a[1]).slice(0,n);
   }
 
-  // === 렌더 ===
   function render(items){
     cluster.clearLayers();
     lastRendered = [];
     $("resultList").innerHTML = "";
 
     const tf = $("typeFilter").value;
-    const q = String($("qAll").value || "").trim().toLowerCase();
+    const q = normText($("qAll").value).toLowerCase();
 
     const normalized = items.map(it=>{
       const name = it.name || "";
@@ -354,31 +372,32 @@
       const key = popKey(it.country, it.city, it.district);
       const population = populationMap.get(key) ?? null;
 
-      const capital = isCapitalArea(it.country, normCity(it.country, it.city));
+      const cityNorm = normCity(it.country, it.city);
+      const capital = isCapitalArea(it.country, cityNorm);
       const needChurches = population ? calcNeedChurchesFromPopulation(population, capital) : 0;
 
-      return { raw:it, name, address, lat, lng, type, key, population, capital, needChurches };
+      return { raw:it, name, address, lat, lng, type, key, population, capital, needChurches, cityNorm };
     })
     .filter(it=>Number.isFinite(it.lat) && Number.isFinite(it.lng))
     .filter(it=> tf==="all" ? true : it.type===tf)
     .filter(it=>{
       if(!q) return true;
-      const blob = `${it.name} ${it.address} ${it.raw.continent||""} ${it.raw.country||""} ${it.raw.city||""} ${it.raw.district||""} ${it.raw.status||""}`.toLowerCase();
+      const blob = `${it.name} ${it.address} ${it.raw.continent||""} ${it.raw.country||""} ${it.cityNorm||""} ${it.raw.district||""} ${it.raw.status||""}`.toLowerCase();
       return blob.includes(q);
     });
 
-    // 카운트/합계
+    // 통계
     let cNew=0, cHall=0, cChurch=0;
     let sumNeed=0, sumNeedCapital=0, sumNeedLocal=0;
     let matchedPop=0;
 
-    // TOP 집계
     const contMap = new Map();
     const countryMap = new Map();
 
     normalized.forEach(it=>{
       if(it.type==='new') cNew++; else if(it.type==='hall') cHall++; else cChurch++;
       if(it.population) matchedPop++;
+
       sumNeed += it.needChurches;
       if(it.needChurches){
         if(it.capital) sumNeedCapital += it.needChurches;
@@ -391,12 +410,13 @@
       const color = it.type==='new' ? '#ef4444' : it.type==='hall' ? '#3b82f6' : '#f59e0b';
       const popup = `
         <b>${escapeHtml(it.name)}</b><br>
-        ${escapeHtml(it.raw.country||"")} / ${escapeHtml(normCity(it.raw.country,it.raw.city)||"")} / ${escapeHtml(it.raw.district||"")}<br>
+        ${escapeHtml(it.raw.country||"")} / ${escapeHtml(it.cityNorm||"")} / ${escapeHtml(it.raw.district||"")}<br>
         ${escapeHtml(it.address)}<br>
         <b>인구</b>: ${it.population ? it.population.toLocaleString() : "-"}<br>
         <b>적정인원(3%)</b>: ${it.population ? Math.round(it.population*POP_RATE).toLocaleString() : "-"}<br>
         <b>예상 필요 교회수</b>: ${it.needChurches} (${it.capital ? "수도권/1000" : "지방/300"})
       `;
+
       const marker = L.circleMarker([it.lat,it.lng],{radius:8,color:color,fillColor:color,fillOpacity:0.85}).bindPopup(popup);
       cluster.addLayer(marker);
       lastRendered.push({item:it, marker});
@@ -412,7 +432,7 @@
         <div class="itemAddr">${escapeHtml(it.address)}</div>
         <div class="itemSub">
           <span class="pill">${escapeHtml(it.raw.country||"")}</span>
-          <span class="pill">${escapeHtml(normCity(it.raw.country,it.raw.city)||"")}</span>
+          <span class="pill">${escapeHtml(it.cityNorm||"")}</span>
           <span class="pill">${escapeHtml(it.raw.district||"")}</span>
           <span class="pill">예상 ${it.needChurches}개</span>
         </div>
@@ -441,7 +461,6 @@
     $("statText").textContent =
       `예상 필요 교회수(인구 3%): ${sumNeed.toLocaleString()}개 (수도권 ${sumNeedCapital.toLocaleString()} / 지방 ${sumNeedLocal.toLocaleString()})`;
 
-    // TOP 출력
     const contTop = topN(contMap, 6);
     const countryTop = topN(countryMap, 10);
 
