@@ -115,7 +115,7 @@
     <div class="card">
       <div class="cardTitle">⚡ 성능/상태 <span class="chip mono" id="chipPerf">render</span></div>
       <div class="small mono" id="perfText">rows: 0 / 표시: 0 / 인구매칭: 0</div>
-      <div class="small mono" id="perfHint">인구×3% / 수도권 1000 / 지방 300</div>
+      <div class="small mono" id="perfHint">인구×1% / 수도권 1000 / 지방 300</div>
     </div>
   </div>
 </header>
@@ -152,7 +152,7 @@
   const POP_CSV_URL    = "/Church-of-God-Map/data/population.csv";
 
   // 규칙
-  const POP_RATE = 0.03; // 전체 인구 중 3%
+  const POP_RATE = 0.01; // 전체 인구 중 3%
   const CAPITAL_CITIES = new Set(["서울","서울특별시","경기","경기도","인천","인천광역시"]);
 
   function setStatus(msg){ $("status").textContent = msg; }
@@ -413,7 +413,7 @@
         ${escapeHtml(it.raw.country||"")} / ${escapeHtml(it.cityNorm||"")} / ${escapeHtml(it.raw.district||"")}<br>
         ${escapeHtml(it.address)}<br>
         <b>인구</b>: ${it.population ? it.population.toLocaleString() : "-"}<br>
-        <b>적정인원(3%)</b>: ${it.population ? Math.round(it.population*POP_RATE).toLocaleString() : "-"}<br>
+        <b>적정인원(1%)</b>: ${it.population ? Math.round(it.population*POP_RATE).toLocaleString() : "-"}<br>
         <b>예상 필요 교회수</b>: ${it.needChurches} (${it.capital ? "수도권/1000" : "지방/300"})
       `;
 
@@ -459,7 +459,7 @@
     $("perfText").textContent = `rows: ${items.length} / 표시: ${normalized.length} / 인구매칭: ${matchedPop}`;
 
     $("statText").textContent =
-      `예상 필요 교회수(인구 3%): ${sumNeed.toLocaleString()}개 (수도권 ${sumNeedCapital.toLocaleString()} / 지방 ${sumNeedLocal.toLocaleString()})`;
+      `예상 필요 교회수(인구 1%): ${sumNeed.toLocaleString()}개 (수도권 ${sumNeedCapital.toLocaleString()} / 지방 ${sumNeedLocal.toLocaleString()})`;
 
     const contTop = topN(contMap, 6);
     const countryTop = topN(countryMap, 10);
@@ -522,3 +522,4 @@
 </script>
 </body>
 </html>
+
