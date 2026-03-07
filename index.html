@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>전세계/서울 교회 현황 지도 v3 (CSV 자동화)</title>
+  <title>전세계/서울 교회 현황 지도 v3 (자동화: CSV 로드 + 필터 + 우측목록)</title>
 
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -12,81 +12,101 @@
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
 
   <style>
-    :root{
-      --bg:#0b1020;--panel:#0f1733;--card:#121c3d;--text:#e8ecff;--muted:#a9b2da;
-      --accent:#6aa6ff;--line:rgba(255,255,255,.10);
+    :root {
+      --bg:#0b1020; --panel:#0f1733; --card:#121c3d; --text:#e8ecff; --muted:#a9b2da;
+      --accent:#6aa6ff; --line:rgba(255,255,255,.10);
     }
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text);}
-    .app{display:flex;height:100vh;width:100vw;}
-    #map{flex:1 1 auto;}
-    .side{
-      width:420px;min-width:340px;max-width:520px;
-      background:linear-gradient(180deg,var(--panel),rgba(15,23,51,.92));
-      border-left:1px solid var(--line);
-      display:flex;flex-direction:column;
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--text); }
+    .app { display:flex; height:100vh; width:100vw; }
+    #map { flex: 1 1 auto; }
+    .side {
+      width: 420px; min-width: 340px; max-width: 520px;
+      background: linear-gradient(180deg, var(--panel), rgba(15,23,51,.92));
+      border-left: 1px solid var(--line);
+      display:flex; flex-direction:column;
     }
-    header{padding:14px 14px 10px;border-bottom:1px solid var(--line);}
-    header h1{margin:0 0 6px;font-size:16px;font-weight:700;}
-    header .sub{color:var(--muted);font-size:12px;line-height:1.4;}
+    header { padding:14px 14px 10px; border-bottom:1px solid var(--line); }
+    header h1 { margin:0 0 6px; font-size:16px; font-weight:700; }
+    header .sub { color:var(--muted); font-size:12px; line-height:1.4; }
 
-    .controls{padding:12px 14px;border-bottom:1px solid var(--line);display:grid;gap:10px;}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-    label{font-size:12px;color:var(--muted);display:block;margin:0 0 6px;}
-    select,input[type="text"]{
-      width:100%;padding:10px 10px;border-radius:10px;
-      border:1px solid var(--line);background:var(--card);color:var(--text);outline:none;
+    .controls { padding:12px 14px; border-bottom:1px solid var(--line); display:grid; gap:10px; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    label { font-size:12px; color:var(--muted); display:block; margin:0 0 6px; }
+    select, input[type="text"] {
+      width:100%; padding:10px 10px; border-radius:10px;
+      border:1px solid var(--line); background:var(--card); color:var(--text);
+      outline:none;
     }
-    .toggles{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-    .toggle{
-      display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);
-      padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.04);
+    .toggles { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .toggle {
+      display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted);
+      padding:8px 10px; border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.04);
     }
-    .toggle input{accent-color:var(--accent);}
+    .toggle input { accent-color: var(--accent); }
 
-    .stats{padding:12px 14px;border-bottom:1px solid var(--line);display:grid;gap:8px;}
-    .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-    .card{
-      background:rgba(255,255,255,.04);
+    .stats { padding:12px 14px; border-bottom:1px solid var(--line); display:grid; gap:8px; }
+    .statgrid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .card {
+      background: rgba(255,255,255,.04);
       border:1px solid var(--line);
       border-radius:14px;
       padding:10px 12px;
     }
-    .card .k{font-size:12px;color:var(--muted);margin-bottom:6px;}
-    .card .v{font-size:18px;font-weight:800;letter-spacing:.2px;}
-    .card .s{margin-top:6px;font-size:12px;color:var(--muted);}
+    .card .k { font-size:12px; color:var(--muted); margin-bottom:6px; }
+    .card .v { font-size:18px; font-weight:800; letter-spacing:.2px; }
+    .card .s { margin-top:6px; font-size:12px; color:var(--muted); }
 
-    .list{padding:10px 10px 14px;overflow:auto;}
-    .item{
+    .list { padding:10px 10px 14px; overflow:auto; }
+    .item {
       border:1px solid var(--line);
-      background:rgba(255,255,255,.03);
+      background: rgba(255,255,255,.03);
       border-radius:14px;
       padding:10px 10px;
       margin:10px 4px;
       display:grid;
       gap:8px;
     }
-    .title{font-size:14px;font-weight:800;line-height:1.25;}
-    .meta{font-size:12px;color:var(--muted);line-height:1.35;}
-    .btns{display:flex;gap:8px;flex-wrap:wrap;}
-    .btn{
-      cursor:pointer;font-size:12px;padding:7px 10px;border-radius:10px;
-      border:1px solid var(--line);background:rgba(106,166,255,.10);
-      color:var(--text);text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+    .item .top { display:flex; gap:8px; align-items:flex-start; justify-content:space-between; }
+    .title { font-size:14px; font-weight:800; line-height:1.25; }
+    .meta { font-size:12px; color:var(--muted); line-height:1.35; }
+    .btns { display:flex; gap:8px; flex-wrap:wrap; }
+    .btn {
+      cursor:pointer;
+      font-size:12px;
+      padding:7px 10px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background: rgba(106,166,255,.10);
+      color: var(--text);
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
     }
-    .btn:hover{border-color:rgba(106,166,255,.45);}
-    .pill{
-      font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid var(--line);
-      color:var(--muted);background:rgba(255,255,255,.03);white-space:nowrap;
+    .btn:hover { border-color: rgba(106,166,255,.45); }
+    .pill {
+      font-size:11px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      color: var(--muted);
+      background: rgba(255,255,255,.03);
+      white-space:nowrap;
     }
-    .footerNote{
-      padding:10px 14px;border-top:1px solid var(--line);
-      color:var(--muted);font-size:11px;line-height:1.45;
+
+    .footerNote {
+      padding:10px 14px;
+      border-top:1px solid var(--line);
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.45;
     }
-    .leaflet-popup-content-wrapper{border-radius:14px;}
-    .popup h3{margin:0 0 6px;font-size:14px;}
-    .popup .p{margin:0;font-size:12px;line-height:1.45;}
-    .popup .links{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;}
-    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+
+    /* Leaflet popup */
+    .leaflet-popup-content-wrapper { border-radius: 14px; }
+    .popup h3 { margin:0 0 6px; font-size:14px; }
+    .popup .p { margin:0; font-size:12px; line-height:1.45; }
+    .popup .links { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; }
   </style>
 </head>
 
@@ -98,7 +118,7 @@
     <header>
       <h1>전세계/서울 교회 현황 지도 v3</h1>
       <div class="sub">
-        CSV 자동 로드: <b class="mono" id="csvPathLabel"></b><br/>
+        CSV 자동 로드: <b id="csvPathLabel"></b><br/>
         (대륙/나라/검색/목록 클릭 줌)
       </div>
     </header>
@@ -164,113 +184,141 @@
     <section class="list" id="list"></section>
 
     <div class="footerNote">
-      ✅ 404가 계속 나면: <span class="mono">/data/churches.csv</span> 파일이 실제로 배포 폴더에 있는지 확인<br/>
-      ✅ 새로고침: <b>Ctrl + Shift + R</b>
+      ✅ CSV는 <b>/Church-of-God-Map/data/churches.csv</b> 로 불러옵니다.<br/>
+      ⚠️ CSV가 404면 “Network 탭”에서 요청 경로를 확인하세요.
     </div>
   </aside>
 </div>
 
 <script>
   // =========================
-  // 0) CSV 경로 "완전 자동" (어느 URL로 열어도 repo/data/churches.csv를 찾음)
+  // 0) 설정: 절대경로 고정(루트/ /index 어디서 열어도 안 깨짐)
   // =========================
-  function detectRepoBasePath() {
-    // GitHub Pages 프로젝트 페이지: /REPO/...
-    // 예) /Church-of-God-Map/index  -> repo = "Church-of-God-Map"
-    const parts = (location.pathname || "/").split("/").filter(Boolean);
-    const repo = parts.length ? parts[0] : "";
-    // user pages(레포 없이 루트)일 수도 있으므로 repo가 없으면 "" 처리
-    return repo ? `/${repo}/` : "/";
-  }
-  const BASE = detectRepoBasePath();
   const CSV_URL = "/Church-of-God-Map/data/churches.csv";
   document.getElementById("csvPathLabel").textContent = CSV_URL;
 
-  const CAPITAL_REGIONS = new Set(["서울","서울특별시","경기","경기도","인천","인천광역시"]);
+  // 수도권 판정(원하면 추가/변경)
+  const CAPITAL_REGIONS = new Set(["서울", "서울특별시", "경기", "경기도", "인천", "인천광역시"]);
 
   // =========================
   // 1) 유틸
   // =========================
-  function safeStr(v){ if(v===null||v===undefined) return ""; return String(v).trim(); }
-  function toNumber(v,fallback=0){
-    const s=safeStr(v).replace(/,/g,"");
-    const n=Number(s);
-    return Number.isFinite(n)?n:fallback;
+  function safeStr(v) {
+    if (v === null || v === undefined) return "";
+    return String(v).trim();
   }
-  function hasCoord(row){
-    const lat=toNumber(row.lat,NaN);
-    const lng=toNumber(row.lng,NaN);
-    return Number.isFinite(lat)&&Number.isFinite(lng);
+
+  function toNumber(v, fallback=0) {
+    const s = safeStr(v).replace(/,/g, "");
+    const n = Number(s);
+    return Number.isFinite(n) ? n : fallback;
   }
-  function isCapitalArea(row){
-    const city=safeStr(row.city);
-    const country=safeStr(row.country);
-    if(!/korea/i.test(country) && country!=="South Korea" && country!=="Korea" && country!=="대한민국") return false;
-    for(const key of CAPITAL_REGIONS){ if(city.includes(key)) return true; }
+
+  function hasCoord(row) {
+    const lat = toNumber(row.lat, NaN);
+    const lng = toNumber(row.lng, NaN);
+    return Number.isFinite(lat) && Number.isFinite(lng);
+  }
+
+  function isCapitalArea(row) {
+    const city = safeStr(row.city);
+    const country = safeStr(row.country);
+    if (!/korea/i.test(country) && country !== "South Korea" && country !== "Korea" && country !== "대한민국") {
+      return false;
+    }
+    for (const key of CAPITAL_REGIONS) {
+      if (city.includes(key)) return true;
+    }
     return false;
   }
-  function calcNeedChurchCount(row){
-    const pop=toNumber(row.population,0);
-    if(!pop) return 0;
-    const denom=isCapitalArea(row)?1000:300;
-    return Math.max(0, Math.round(pop/denom));
+
+  function calcNeedChurchCount(row) {
+    // CSV에 population 또는 인구 열이 있을 때만 계산
+    const pop = toNumber(row.population, 0);
+    if (!pop) return 0;
+    const denom = isCapitalArea(row) ? 1000 : 300;
+    return Math.max(0, Math.round(pop / denom));
   }
-  function buildSearchText(row){
-    const full=document.getElementById("toggleSearchFullText")?.checked;
-    const partsBasic=[row.address,row.name].map(safeStr).filter(Boolean);
-    const partsFull=[row.continent,row.country,row.city,row.district,row.address,row.name].map(safeStr).filter(Boolean);
-    return (full?partsFull:partsBasic).join(" ");
+
+  function buildSearchText(row) {
+    const full = document.getElementById("toggleSearchFullText")?.checked;
+    const partsBasic = [row.address, row.name].map(safeStr).filter(Boolean);
+    const partsFull = [row.continent, row.country, row.city, row.district, row.address, row.name].map(safeStr).filter(Boolean);
+    return (full ? partsFull : partsBasic).join(" ");
   }
-  function makeGoogleQuery(row){
-    const full=document.getElementById("toggleSearchFullText")?.checked;
-    const addr=safeStr(row.address), city=safeStr(row.city), dist=safeStr(row.district), name=safeStr(row.name);
-    const q=full ? [name,city,dist,addr].filter(Boolean).join(" ") : [addr||name].filter(Boolean).join(" ");
-    return encodeURIComponent(q||name||addr||"");
+
+  function makeGoogleQuery(row) {
+    const full = document.getElementById("toggleSearchFullText")?.checked;
+    const addr = safeStr(row.address);
+    const city = safeStr(row.city);
+    const dist = safeStr(row.district);
+    const name = safeStr(row.name);
+
+    const q = full ? [name, city, dist, addr].filter(Boolean).join(" ")
+                   : [addr || name].filter(Boolean).join(" ");
+    return encodeURIComponent(q || name || addr || "");
   }
-  function makeOSMQuery(row){
-    const full=document.getElementById("toggleSearchFullText")?.checked;
-    const addr=safeStr(row.address), city=safeStr(row.city), dist=safeStr(row.district), name=safeStr(row.name);
-    const q=full ? [name,city,dist,addr].filter(Boolean).join(" ") : [addr||name].filter(Boolean).join(" ");
-    return encodeURIComponent(q||name||addr||"");
+
+  function makeOSMQuery(row) {
+    const full = document.getElementById("toggleSearchFullText")?.checked;
+    const addr = safeStr(row.address);
+    const city = safeStr(row.city);
+    const dist = safeStr(row.district);
+    const name = safeStr(row.name);
+
+    const q = full ? [name, city, dist, addr].filter(Boolean).join(" ")
+                   : [addr || name].filter(Boolean).join(" ");
+    return encodeURIComponent(q || name || addr || "");
   }
 
   // =========================
-  // 2) CSV 파서 + BOM 안전
+  // 2) CSV 파서(따옴표/콤마 기본 지원) + BOM 안전
   // =========================
-  function parseCSV(text){
-    const rows=[];
-    let cur=[], val="", inQuotes=false;
-    function pushVal(){ cur.push(val); val=""; }
-    function pushRow(){
-      if(cur.length===1 && safeStr(cur[0])===""){ cur=[]; return; }
-      rows.push(cur); cur=[];
+  function parseCSV(text) {
+    const rows = [];
+    let cur = [];
+    let val = "";
+    let inQuotes = false;
+
+    function pushVal() { cur.push(val); val = ""; }
+    function pushRow() {
+      if (cur.length === 1 && safeStr(cur[0]) === "") { cur = []; return; }
+      rows.push(cur);
+      cur = [];
     }
-    for(let i=0;i<text.length;i++){
-      const ch=text[i];
-      if(inQuotes){
-        if(ch === '"'){
-          const next=text[i+1];
-          if(next === '"'){ val+='"'; i++; }
-          else inQuotes=false;
-        } else val+=ch;
+
+    for (let i=0; i<text.length; i++) {
+      const ch = text[i];
+
+      if (inQuotes) {
+        if (ch === '"') {
+          const next = text[i+1];
+          if (next === '"') { val += '"'; i++; }
+          else { inQuotes = false; }
+        } else {
+          val += ch;
+        }
       } else {
-        if(ch === '"') inQuotes=true;
-        else if(ch === ",") pushVal();
-        else if(ch === "\n"){ pushVal(); pushRow(); }
-        else if(ch === "\r"){ }
-        else val+=ch;
+        if (ch === '"') inQuotes = true;
+        else if (ch === ",") pushVal();
+        else if (ch === "\n") { pushVal(); pushRow(); }
+        else if (ch === "\r") { /* ignore */ }
+        else val += ch;
       }
     }
     pushVal(); pushRow();
-    if(!rows.length) return [];
 
-    const header=rows[0].map(h=>safeStr(h).replace(/^\uFEFF/,""));
-    const data=[];
-    for(let r=1;r<rows.length;r++){
-      const obj={};
-      for(let c=0;c<header.length;c++){
-        const key=header[c] || `col${c}`;
-        obj[key]=(rows[r][c] ?? "");
+    if (!rows.length) return [];
+
+    // 헤더 BOM 제거(﻿)
+    const header = rows[0].map(h => safeStr(h).replace(/^\uFEFF/, ""));
+
+    const data = [];
+    for (let r=1; r<rows.length; r++) {
+      const obj = {};
+      for (let c=0; c<header.length; c++) {
+        const key = header[c] || `col${c}`;
+        obj[key] = (rows[r][c] ?? "");
       }
       data.push(obj);
     }
@@ -278,77 +326,92 @@
   }
 
   // =========================
-  // 3) 지도
+  // 3) 지도/레이어
   // =========================
-  const map=L.map("map",{zoomControl:true}).setView([20,0],2);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
-    maxZoom:19, attribution:'&copy; OpenStreetMap contributors'
+  const map = L.map("map", { zoomControl: true }).setView([20, 0], 2);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
-  const markerLayer=L.layerGroup().addTo(map);
 
-  let allRows=[], filteredRows=[];
-  const markerByKey=new Map();
-  function rowKey(row,idx){
-    const no=safeStr(row.no);
-    if(no) return `no:${no}`;
+  const markerLayer = L.layerGroup().addTo(map);
+
+  let allRows = [];
+  let filteredRows = [];
+  const markerByKey = new Map();
+
+  function rowKey(row, idx) {
+    const no = safeStr(row.no);
+    if (no) return `no:${no}`;
     return `k:${safeStr(row.name)}|${safeStr(row.address)}|${idx}`;
   }
 
   // =========================
-  // 4) UI 옵션
+  // 4) UI 옵션 채우기
   // =========================
-  function uniqueSorted(values){
+  function uniqueSorted(values) {
     return Array.from(new Set(values.filter(Boolean))).sort((a,b)=>a.localeCompare(b));
   }
-  function populateSelect(selectEl, values){
-    const prev=selectEl.value;
-    selectEl.innerHTML=`<option value="__ALL__">전체</option>`;
-    for(const v of values){
-      const opt=document.createElement("option");
-      opt.value=v; opt.textContent=v;
+
+  function populateSelect(selectEl, values) {
+    const prev = selectEl.value;
+    selectEl.innerHTML = `<option value="__ALL__">전체</option>`;
+    for (const v of values) {
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
       selectEl.appendChild(opt);
     }
-    if([...selectEl.options].some(o=>o.value===prev)) selectEl.value=prev;
+    if ([...selectEl.options].some(o => o.value === prev)) selectEl.value = prev;
   }
 
   // =========================
-  // 5) 필터/렌더
+  // 5) 필터링/렌더
   // =========================
-  function applyFilters(){
-    const continent=document.getElementById("continentSelect").value;
-    const country=document.getElementById("countrySelect").value;
-    const q=safeStr(document.getElementById("searchInput").value).toLowerCase();
-    const onlyHasCoord=document.getElementById("toggleShowOnlyHasCoord").checked;
+  function applyFilters() {
+    const continent = document.getElementById("continentSelect").value;
+    const country = document.getElementById("countrySelect").value;
+    const q = safeStr(document.getElementById("searchInput").value).toLowerCase();
+    const onlyHasCoord = document.getElementById("toggleShowOnlyHasCoord").checked;
 
-    filteredRows=allRows.filter((row)=>{
-      const contOk=(continent==="__ALL__") || safeStr(row.continent)===continent;
-      const countryOk=(country==="__ALL__") || safeStr(row.country)===country;
-      const coordOk=!onlyHasCoord || hasCoord(row);
-      if(!contOk || !countryOk || !coordOk) return false;
-      if(!q) return true;
-      return buildSearchText(row).toLowerCase().includes(q);
+    filteredRows = allRows.filter((row, idx) => {
+      const contOk = (continent === "__ALL__") || safeStr(row.continent) === continent;
+      const countryOk = (country === "__ALL__") || safeStr(row.country) === country;
+      const coordOk = !onlyHasCoord || hasCoord(row);
+      if (!contOk || !countryOk || !coordOk) return false;
+
+      if (!q) return true;
+      const text = buildSearchText(row).toLowerCase();
+      return text.includes(q);
     });
+
     renderAll();
   }
 
-  function renderAll(){ renderMarkers(); renderList(); renderStats(); }
+  function renderAll() {
+    renderMarkers();
+    renderList();
+    renderStats();
+  }
 
-  function renderMarkers(){
+  function renderMarkers() {
     markerLayer.clearLayers();
     markerByKey.clear();
 
-    filteredRows.forEach((row, idx)=>{
-      if(!hasCoord(row)) return;
-      const lat=toNumber(row.lat,0), lng=toNumber(row.lng,0);
-      const key=rowKey(row,idx);
+    filteredRows.forEach((row, idx) => {
+      if (!hasCoord(row)) return;
 
-      const churchCount=toNumber(row["교회수"], toNumber(row.churches,1)) || 1;
-      const need=calcNeedChurchCount(row);
+      const lat = toNumber(row.lat, 0);
+      const lng = toNumber(row.lng, 0);
 
-      const popupHTML=`
+      const key = rowKey(row, idx);
+      const churchCount = toNumber(row["교회수"], toNumber(row.churches, 1)) || 1;
+      const need = calcNeedChurchCount(row);
+
+      const popupHTML = `
         <div class="popup">
-          <h3>${safeStr(row.name)||"이름 없음"}</h3>
-          <p class="p">${[row.country,row.city,row.district].map(safeStr).filter(Boolean).join(" / ")}</p>
+          <h3>${safeStr(row.name) || "이름 없음"}</h3>
+          <p class="p">${[row.country, row.city, row.district].map(safeStr).filter(Boolean).join(" / ")}</p>
           <p class="p">${safeStr(row.address)}</p>
           <p class="p" style="margin-top:6px;">
             <b>교회수</b>: ${churchCount} &nbsp;|&nbsp;
@@ -359,55 +422,61 @@
             <a class="btn" target="_blank" rel="noopener" href="https://www.openstreetmap.org/search?query=${makeOSMQuery(row)}">OSM</a>
             ${safeStr(row.link) ? `<a class="btn" target="_blank" rel="noopener" href="${safeStr(row.link)}">링크</a>` : ""}
           </div>
-        </div>`;
-      const marker=L.marker([lat,lng]).bindPopup(popupHTML);
+        </div>
+      `;
+
+      const marker = L.marker([lat, lng]).bindPopup(popupHTML);
       marker.addTo(markerLayer);
       markerByKey.set(key, marker);
     });
   }
 
-  function renderList(){
-    const listEl=document.getElementById("list");
-    listEl.innerHTML="";
-    if(!filteredRows.length){
-      listEl.innerHTML=`<div class="card"><div class="k">결과 없음</div><div class="s">필터/검색 조건을 바꿔보세요.</div></div>`;
+  function renderList() {
+    const listEl = document.getElementById("list");
+    listEl.innerHTML = "";
+
+    if (!filteredRows.length) {
+      listEl.innerHTML = `<div class="card"><div class="k">결과 없음</div><div class="s">필터/검색 조건을 바꿔보세요.</div></div>`;
       return;
     }
 
-    filteredRows.forEach((row, idx)=>{
-      const key=rowKey(row,idx);
-      const title=safeStr(row.name)||"이름 없음";
-      const loc=[row.continent,row.country,row.city,row.district].map(safeStr).filter(Boolean).join(" / ");
-      const addr=safeStr(row.address);
+    filteredRows.forEach((row, idx) => {
+      const key = rowKey(row, idx);
+      const title = safeStr(row.name) || "이름 없음";
+      const loc = [row.continent, row.country, row.city, row.district].map(safeStr).filter(Boolean).join(" / ");
+      const addr = safeStr(row.address);
 
-      const churchCount=toNumber(row["교회수"], toNumber(row.churches,1)) || 1;
-      const need=calcNeedChurchCount(row);
+      const churchCount = toNumber(row["교회수"], toNumber(row.churches, 1)) || 1;
+      const need = calcNeedChurchCount(row);
 
-      const badges=[];
-      badges.push(hasCoord(row)?`<span class="pill">좌표✅</span>`:`<span class="pill">좌표❌</span>`);
-      if(need) badges.push(`<span class="pill">적정 ${need}</span>`);
+      const badges = [];
+      badges.push(hasCoord(row) ? `<span class="pill">좌표✅</span>` : `<span class="pill">좌표❌</span>`);
+      if (need) badges.push(`<span class="pill">적정 ${need}</span>`);
       badges.push(`<span class="pill">교회수 ${churchCount}</span>`);
 
-      const item=document.createElement("div");
-      item.className="item";
-      item.innerHTML=`
-        <div>
-          <div class="title">${title}</div>
-          <div class="meta">${loc}</div>
-          <div class="meta">${addr}</div>
-          <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">${badges.join("")}</div>
+      const item = document.createElement("div");
+      item.className = "item";
+      item.innerHTML = `
+        <div class="top">
+          <div>
+            <div class="title">${title}</div>
+            <div class="meta">${loc}</div>
+            <div class="meta">${addr}</div>
+            <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">${badges.join("")}</div>
+          </div>
         </div>
         <div class="btns">
           <button class="btn" data-action="zoom">지도에서 보기</button>
           <a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${makeGoogleQuery(row)}">Google</a>
           <a class="btn" target="_blank" rel="noopener" href="https://www.openstreetmap.org/search?query=${makeOSMQuery(row)}">OSM</a>
           ${safeStr(row.link) ? `<a class="btn" target="_blank" rel="noopener" href="${safeStr(row.link)}">링크</a>` : ""}
-        </div>`;
+        </div>
+      `;
 
-      item.querySelector('[data-action="zoom"]').addEventListener("click", ()=>{
-        const marker=markerByKey.get(key);
-        if(marker){
-          map.setView(marker.getLatLng(),15,{animate:true});
+      item.querySelector('[data-action="zoom"]').addEventListener("click", () => {
+        const marker = markerByKey.get(key);
+        if (marker) {
+          map.setView(marker.getLatLng(), 15, { animate:true });
           marker.openPopup();
         } else {
           alert("이 항목은 좌표(lat/lng)가 없어 지도에서 바로 보기 어렵습니다.\nCSV에 lat/lng를 채워주세요.");
@@ -418,34 +487,40 @@
     });
   }
 
-  function renderStats(){
-    const rows=filteredRows.length;
-    const markers=filteredRows.filter(hasCoord).length;
-    let totalChurch=0, totalNeed=0;
+  function renderStats() {
+    const rows = filteredRows.length;
+    const markers = filteredRows.filter(hasCoord).length;
 
-    for(const row of filteredRows){
-      const cc=toNumber(row["교회수"], toNumber(row.churches,1)) || 1;
+    let totalChurch = 0;
+    let totalNeed = 0;
+
+    for (const row of filteredRows) {
+      const cc = toNumber(row["교회수"], toNumber(row.churches, 1)) || 1;
       totalChurch += cc;
       totalNeed += calcNeedChurchCount(row);
     }
-    document.getElementById("statRows").textContent=rows.toLocaleString();
-    document.getElementById("statMarkers").textContent=markers.toLocaleString();
-    document.getElementById("statChurchCount").textContent=totalChurch.toLocaleString();
-    document.getElementById("statNeedCount").textContent=totalNeed.toLocaleString();
+
+    document.getElementById("statRows").textContent = rows.toLocaleString();
+    document.getElementById("statMarkers").textContent = markers.toLocaleString();
+    document.getElementById("statChurchCount").textContent = totalChurch.toLocaleString();
+    document.getElementById("statNeedCount").textContent = totalNeed.toLocaleString();
   }
 
   // =========================
-  // 6) CSV 로드
+  // 6) CSV 로드 & 초기화
   // =========================
-  async function loadCSV(){
-    const res=await fetch(CSV_URL,{cache:"no-store"});
-    if(!res.ok) throw new Error(`CSV 로드 실패: ${res.status} ${res.statusText}`);
+  async function loadCSV() {
+    const res = await fetch(CSV_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error(`CSV 로드 실패: ${res.status} ${res.statusText}`);
 
-    const textRaw=await res.text();
-    const text=textRaw.replace(/^\uFEFF/,""); // BOM 제거
-    const data=parseCSV(text);
+    // BOM 제거(﻿)
+    const textRaw = await res.text();
+    const text = textRaw.replace(/^\uFEFF/, "");
 
-    allRows=data.map(r=>({
+    const data = parseCSV(text);
+
+    // 열 이름 별칭 대응
+    allRows = data.map(r => ({
       no: r.no ?? r["No"] ?? r["번호"] ?? "",
       name: r.name ?? r["교회명"] ?? "",
       code: r.code ?? r["코드"] ?? "",
@@ -460,72 +535,74 @@
       dedication_date: r.dedication_date ?? r["dedication"] ?? "",
       link: r.link ?? "",
       status: r.status ?? "",
+      // 인구(선택)
       population: r.population ?? r["인구"] ?? ""
     }));
 
-    const conts=uniqueSorted(allRows.map(r=>safeStr(r.continent)));
+    // 필터 옵션 채우기
+    const conts = uniqueSorted(allRows.map(r => safeStr(r.continent)));
     populateSelect(document.getElementById("continentSelect"), conts);
 
-    const countries=uniqueSorted(allRows.map(r=>safeStr(r.country)));
+    const countries = uniqueSorted(allRows.map(r => safeStr(r.country)));
     populateSelect(document.getElementById("countrySelect"), countries);
 
     applyFilters();
   }
 
   // =========================
-  // 7) 이벤트
+  // 7) 이벤트 바인딩
   // =========================
-  function bindEvents(){
-    const continentSelect=document.getElementById("continentSelect");
-    const countrySelect=document.getElementById("countrySelect");
-    const searchInput=document.getElementById("searchInput");
+  function bindEvents() {
+    const continentSelect = document.getElementById("continentSelect");
+    const countrySelect = document.getElementById("countrySelect");
+    const searchInput = document.getElementById("searchInput");
 
-    continentSelect.addEventListener("change", ()=>{
-      const continent=continentSelect.value;
-      const scoped=(continent==="__ALL__") ? allRows : allRows.filter(r=>safeStr(r.continent)===continent);
+    continentSelect.addEventListener("change", () => {
+      const continent = continentSelect.value;
+      const scoped = (continent === "__ALL__")
+        ? allRows
+        : allRows.filter(r => safeStr(r.continent) === continent);
 
-      const countries=uniqueSorted(scoped.map(r=>safeStr(r.country)));
+      const countries = uniqueSorted(scoped.map(r => safeStr(r.country)));
       populateSelect(countrySelect, countries);
 
-      if(![...countrySelect.options].some(o=>o.value===countrySelect.value)){
-        countrySelect.value="__ALL__";
+      if (![...countrySelect.options].some(o => o.value === countrySelect.value)) {
+        countrySelect.value = "__ALL__";
       }
       applyFilters();
     });
 
     countrySelect.addEventListener("change", applyFilters);
 
-    let t=null;
-    searchInput.addEventListener("input", ()=>{
+    let t = null;
+    searchInput.addEventListener("input", () => {
       clearTimeout(t);
-      t=setTimeout(applyFilters,120);
+      t = setTimeout(applyFilters, 120);
     });
 
     document.getElementById("toggleShowOnlyHasCoord").addEventListener("change", applyFilters);
     document.getElementById("toggleSearchFullText").addEventListener("change", applyFilters);
   }
 
+  // =========================
+  // 8) 실행
+  // =========================
   bindEvents();
-  loadCSV().catch(err=>{
+  loadCSV().catch(err => {
     console.error(err);
-    const listEl=document.getElementById("list");
-    listEl.innerHTML=`
+    const listEl = document.getElementById("list");
+    listEl.innerHTML = `
       <div class="card">
         <div class="k">CSV 로드 실패</div>
         <div class="s">
-          요청 URL: <b class="mono">${CSV_URL}</b><br/>
-          에러: ${err.message}<br/>
-          현재 경로: <span class="mono">${location.pathname}</span>
+          요청 URL: <b>${CSV_URL}</b><br/>
+          에러: ${err.message}
         </div>
-      </div>`;
-    alert(
-      "CSV를 불러오지 못했습니다.\n\n" +
-      "- 위 요청 URL을 브라우저에 직접 넣었을 때 열리는지 확인\n" +
-      "- data/churches.csv가 Pages 배포 위치에 실제로 있는지 확인\n\n" +
-      "에러: " + err.message
-    );
+      </div>
+    `;
+    alert("CSV를 불러오지 못했습니다.\n\n- /Church-of-God-Map/data/churches.csv 가 열리는지\n- GitHub Pages에 파일이 올라갔는지\n- 대소문자 경로가 정확한지\n확인해주세요.\n\n에러: " + err.message);
   });
 </script>
+
 </body>
 </html>
-
