@@ -3,9 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>전세계/서울 교회 현황 지도 전 세계 규모: 175개국, 7,500~7,800여 개 교회
-국내 규모: 약 400~420여 개 교회(26년3월11일 기준 449개)
-등록 성도: 약 370만~390만여 명 (최종 · 1%)</title>
+  <title>전세계/서울 교회 현황 지도 v3 (최종 · 1%)</title>
 
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -23,7 +21,7 @@
       --bg:#fff;
       --chip:#f6f6f6;
       --radius:12px;
-      --header-h:260px;
+      --header-h:360px;
       --side-w:360px;
     }
     html,body{height:100%;margin:0;}
@@ -143,16 +141,16 @@
     }
 
     @media(max-width:1100px){
-      :root{--header-h:320px;}
+      :root{--header-h:430px;}
       .dash{grid-template-columns:1fr 1fr;}
     }
     @media(max-width:900px){
-      :root{--header-h:430px;}
+      :root{--header-h:560px;}
       .dash{grid-template-columns:1fr;}
       #side{width:44vw;}
     }
     @media(max-width:720px){
-      :root{--header-h:520px;}
+      :root{--header-h:680px;}
       #wrap{flex-direction:column;}
       #mapWrap{border-right:none;border-bottom:1px solid var(--border);height:58%;}
       #side{width:100%;max-width:none;height:42%;}
@@ -165,6 +163,15 @@
   <div class="titleRow">
     <div class="title">전세계/서울 교회 현황 지도 v3</div>
     <div class="small" id="status">대기 중…</div>
+  </div>
+
+  <div class="card" id="summaryCard">
+    <div class="cardTitle">🌐 하나님의교회 세계복음선교협회 현황</div>
+    <div class="small" style="line-height:1.7;">
+      전 세계 규모: <b>175개국, 7,500~7,800여 개 교회</b><br>
+      국내 규모: <b>약 400~420여 개 교회</b> <span class="mono">(2026년 3월 11일 기준 449개)</span><br>
+      등록 성도: <b>약 370만~390만여 명</b>
+    </div>
   </div>
 
   <div class="row">
@@ -802,5 +809,3 @@
 </script>
 </body>
 </html>
-
-
