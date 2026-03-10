@@ -15,42 +15,105 @@
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
   <style>
-    :root{--border:#e9e9e9;--muted:#666;--bg:#fff;--chip:#f6f6f6;--radius:12px;--header-h:210px;--side-w:360px;}
+    :root{
+      --border:#e9e9e9;
+      --muted:#666;
+      --bg:#fff;
+      --chip:#f6f6f6;
+      --radius:12px;
+      --header-h:260px;
+      --side-w:360px;
+    }
     html,body{height:100%;margin:0;}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);overflow:hidden;}
-    header{position:fixed;top:0;left:0;right:0;z-index:2000;padding:14px 14px 10px;border-bottom:1px solid var(--border);background:#fff;display:grid;gap:10px;box-sizing:border-box;}
-    .titleRow{display:flex;justify-content:space-between;align-items:center;gap:12px;}
-    .title{font-weight:800;font-size:22px;letter-spacing:-.3px;}
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+      background:var(--bg);
+      overflow:hidden;
+    }
+    header{
+      position:fixed;top:0;left:0;right:0;z-index:2000;
+      padding:14px 14px 10px;border-bottom:1px solid var(--border);
+      background:#fff;display:grid;gap:10px;box-sizing:border-box;
+    }
+    .titleRow{
+      display:flex;justify-content:space-between;align-items:center;gap:12px;
+    }
+    .title{
+      font-weight:800;font-size:22px;letter-spacing:-.3px;
+    }
     .small{font-size:12px;color:var(--muted);}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-    input[type="file"], input[type="text"], select{padding:10px 12px;border:1px solid #ddd;border-radius:10px;background:#fff;outline:none;}
+    .row{
+      display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+    }
+    input[type="file"], input[type="text"], select{
+      padding:10px 12px;border:1px solid #ddd;border-radius:10px;
+      background:#fff;outline:none;
+    }
     input[type="text"]{flex:1;min-width:260px;}
     select{min-width:140px;}
-    button{padding:10px 12px;border:1px solid #ccc;border-radius:10px;background:#fff;cursor:pointer;}
+    button{
+      padding:10px 12px;border:1px solid #ccc;border-radius:10px;
+      background:#fff;cursor:pointer;
+    }
     button:disabled{opacity:.5;cursor:not-allowed;}
-    .chip{display:inline-flex;align-items:center;gap:6px;background:var(--chip);border:1px solid #eee;border-radius:999px;padding:2px 8px;font-size:12px;color:#333;}
+    .chip{
+      display:inline-flex;align-items:center;gap:6px;background:var(--chip);
+      border:1px solid #eee;border-radius:999px;padding:2px 8px;
+      font-size:12px;color:#333;
+    }
     .dash{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-    .card{border:1px solid var(--border);border-radius:var(--radius);padding:12px;background:#fff;}
-    .cardTitle{font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:6px;}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;}
+    .card{
+      border:1px solid var(--border);border-radius:var(--radius);
+      padding:12px;background:#fff;
+    }
+    .cardTitle{
+      font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:6px;
+    }
+    .mono{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    }
     .list{margin:0;padding-left:18px;}
     .list li{margin:3px 0;}
 
-    #wrap{position:fixed;top:var(--header-h);left:0;right:0;bottom:44px;display:flex;min-height:0;}
-    #mapWrap{flex:1 1 auto;position:relative;min-width:0;border-right:1px solid var(--border);}
+    #wrap{
+      position:fixed;top:var(--header-h);left:0;right:0;bottom:44px;
+      display:flex;min-height:0;
+    }
+    #mapWrap{
+      flex:1 1 auto;position:relative;min-width:0;border-right:1px solid var(--border);
+    }
     #map{height:100%;width:100%;background:#eef;}
-    #side{width:var(--side-w);max-width:48vw;background:#fff;display:flex;flex-direction:column;min-height:0;}
-    .sideHeader{padding:12px 12px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;}
-    .sideTitle{font-weight:800;font-size:14px;letter-spacing:-.2px;display:flex;align-items:center;gap:8px;}
-    .sideMeta{font-size:12px;color:var(--muted);white-space: nowrap;}
-    #resultList{overflow:auto;padding:10px 10px 14px;display:flex;flex-direction:column;gap:8px;}
-    .item{border:1px solid #eee;border-radius:12px;padding:10px;cursor:pointer;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.03);}
+    #side{
+      width:var(--side-w);max-width:48vw;background:#fff;
+      display:flex;flex-direction:column;min-height:0;
+    }
+    .sideHeader{
+      padding:12px 12px 10px;border-bottom:1px solid var(--border);
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+    }
+    .sideTitle{
+      font-weight:800;font-size:14px;letter-spacing:-.2px;
+      display:flex;align-items:center;gap:8px;
+    }
+    .sideMeta{font-size:12px;color:var(--muted);white-space:nowrap;}
+    #resultList{
+      overflow:auto;padding:10px 10px 14px;display:flex;flex-direction:column;gap:8px;
+    }
+    .item{
+      border:1px solid #eee;border-radius:12px;padding:10px;cursor:pointer;
+      background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.03);
+    }
     .item:hover{background:#fafafa;}
-    .item.active{border-color:#222;box-shadow:0 2px 12px rgba(0,0,0,.10);}
     .itemName{font-weight:800;font-size:13px;margin-bottom:4px;}
     .itemAddr{font-size:12px;color:#444;line-height:1.35;}
-    .itemSub{font-size:11px;color:var(--muted);margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;}
-    .pill{font-size:11px;border:1px solid #eee;background:#f7f7f7;padding:2px 6px;border-radius:999px;}
+    .itemSub{
+      font-size:11px;color:var(--muted);margin-top:6px;
+      display:flex;gap:8px;flex-wrap:wrap;
+    }
+    .pill{
+      font-size:11px;border:1px solid #eee;background:#f7f7f7;
+      padding:2px 6px;border-radius:999px;
+    }
 
     .mapLegend{
       position:absolute;bottom:20px;right:20px;background:rgba(255,255,255,0.95);
@@ -58,19 +121,15 @@
       box-shadow:0 4px 16px rgba(0,0,0,.15);display:flex;flex-direction:column;
       gap:8px;font-size:12px;z-index:1000;pointer-events:none;user-select:none;
     }
-    .mapLegend .legendItem{display:flex;align-items:center;gap:8px;color:#222;white-space:nowrap;}
+    .mapLegend .legendItem{
+      display:flex;align-items:center;gap:8px;color:#222;white-space:nowrap;
+    }
     .legendCount{color:#555;font-variant-numeric:tabular-nums;}
 
     .mapBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
     .mapBtn{
-      display:inline-block;
-      padding:6px 10px;
-      border:1px solid #ddd;
-      border-radius:8px;
-      text-decoration:none;
-      color:#222;
-      background:#fff;
-      font-size:12px;
+      display:inline-block;padding:6px 10px;border:1px solid #ddd;border-radius:8px;
+      text-decoration:none;color:#222;background:#fff;font-size:12px;
     }
     .mapBtn:hover{background:#f8f8f8;}
 
@@ -81,11 +140,17 @@
       box-sizing:border-box;
     }
 
+    @media(max-width:1100px){
+      :root{--header-h:320px;}
+      .dash{grid-template-columns:1fr 1fr;}
+    }
     @media(max-width:900px){
+      :root{--header-h:430px;}
       .dash{grid-template-columns:1fr;}
       #side{width:44vw;}
     }
     @media(max-width:720px){
+      :root{--header-h:520px;}
       #wrap{flex-direction:column;}
       #mapWrap{border-right:none;border-bottom:1px solid var(--border);height:58%;}
       #side{width:100%;max-width:none;height:42%;}
@@ -113,6 +178,18 @@
       <option value="new">새성전</option>
       <option value="hall">현당/헌당</option>
       <option value="church">교회</option>
+    </select>
+
+    <select id="continentFilter">
+      <option value="all">전체 대륙</option>
+    </select>
+
+    <select id="countryFilter">
+      <option value="all">전체 나라</option>
+    </select>
+
+    <select id="regionFilter">
+      <option value="all">전체 지역</option>
     </select>
 
     <form id="searchForm" style="display:flex;gap:10px;flex:1;">
@@ -173,13 +250,15 @@
 <script>
   const $ = id => document.getElementById(id);
 
-  // 경로(절대경로)
   const CHURCH_CSV_URL = "/Church-of-God-Map/data/churches.csv";
   const POP_CSV_URL    = "/Church-of-God-Map/data/population.csv";
 
-  // 1% 기준
   const POP_RATE = 0.01;
   const CAPITAL_CITIES = new Set(["서울","서울특별시","경기","경기도","인천","인천광역시"]);
+
+  let populationMap = new Map();
+  let allItems = [];
+  let lastRendered = [];
 
   function setStatus(msg){
     $("status").textContent = msg;
@@ -220,6 +299,12 @@
     return x;
   }
 
+  function getRegionLabel(country, city, district){
+    const cityNorm = normCity(country, city);
+    const distNorm = normDistrict(district);
+    return [cityNorm, distNorm].filter(Boolean).join(" ");
+  }
+
   function isCapitalArea(countryRaw, cityRaw){
     const country = String(countryRaw || "").trim().toLowerCase();
     const city = String(cityRaw || "").trim();
@@ -243,7 +328,7 @@
     text = String(text || "").replace(/^\uFEFF/, "").trim();
     if(!text) return [];
 
-    const firstLine = text.split(/\r?\n/,1)[0] || "";
+    const firstLine = text.split(/\r?\n/, 1)[0] || "";
     const isTSV = firstLine.includes("\t") && !firstLine.includes(",");
 
     if(isTSV){
@@ -258,10 +343,12 @@
     }
 
     const rows = [];
-    let cur = [], val = "", inQuotes = false;
+    let cur = [];
+    let val = "";
+    let inQuotes = false;
 
-    const pushVal = ()=>{ cur.push(val); val = ""; };
-    const pushRow = ()=>{
+    const pushVal = () => { cur.push(val); val = ""; };
+    const pushRow = () => {
       if(cur.length === 1 && String(cur[0] || "").trim() === ""){
         cur = [];
         return;
@@ -270,11 +357,11 @@
       cur = [];
     };
 
-    for(let i=0; i<text.length; i++){
+    for(let i = 0; i < text.length; i++){
       const ch = text[i];
       if(inQuotes){
         if(ch === '"'){
-          const next = text[i+1];
+          const next = text[i + 1];
           if(next === '"'){
             val += '"';
             i++;
@@ -292,6 +379,7 @@
         else val += ch;
       }
     }
+
     pushVal();
     pushRow();
 
@@ -304,10 +392,6 @@
       return o;
     });
   }
-
-  let populationMap = new Map();
-  let allItems = [];
-  let lastRendered = [];
 
   function popKey(country, city, district){
     const ctry = normText(country);
@@ -324,13 +408,12 @@
       it.raw.district || "",
       it.address || ""
     ].filter(Boolean);
-
     return parts.join(" ").replace(/\s+/g, " ").trim();
   }
 
   function buildGoogleMapUrl(it){
     if(Number.isFinite(it.lat) && Number.isFinite(it.lng)){
-      return `https://www.google.com/maps/search/?api=1&query=${it.lat},${it.lng}`;
+      return `https://www.google.com/maps?q=${encodeURIComponent(it.lat + "," + it.lng)}`;
     }
     const query = buildSearchQuery(it);
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
@@ -341,13 +424,62 @@
     return `https://map.kakao.com/?q=${encodeURIComponent(query)}`;
   }
 
-  // 지도
-  const map = L.map('map', { worldCopyJump:true }).setView([20,0], 2);
+  function fillSelectOptions(selectEl, values, defaultLabel){
+    const currentValue = selectEl.value;
+    selectEl.innerHTML = `<option value="all">${defaultLabel}</option>`;
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    values
+      .filter(Boolean)
+      .sort((a, b) => String(a).localeCompare(String(b), "ko"))
+      .forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v;
+        opt.textContent = v;
+        selectEl.appendChild(opt);
+      });
+
+    const exists = Array.from(selectEl.options).some(o => o.value === currentValue);
+    selectEl.value = exists ? currentValue : "all";
+  }
+
+  function rebuildLocationFilters(items){
+    const continentSet = new Set();
+    const countrySet = new Set();
+    const regionSet = new Set();
+
+    items.forEach(it => {
+      const continent = normText(it.continent || "");
+      const country = normText(it.country || "");
+      const region = getRegionLabel(it.country, it.city, it.district);
+
+      if(continent) continentSet.add(continent);
+      if(country) countrySet.add(country);
+      if(region) regionSet.add(region);
+    });
+
+    fillSelectOptions($("continentFilter"), [...continentSet], "전체 대륙");
+    fillSelectOptions($("countryFilter"), [...countrySet], "전체 나라");
+    fillSelectOptions($("regionFilter"), [...regionSet], "전체 지역");
+  }
+
+  function inc(mapObj, key, by = 1){
+    const k = String(key ?? "").trim();
+    if(!k) return;
+    mapObj.set(k, (mapObj.get(k) || 0) + by);
+  }
+
+  function topN(mapObj, n){
+    return Array.from(mapObj.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, n);
+  }
+
+  const map = L.map("map", { worldCopyJump:true }).setView([20, 0], 2);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom:19,
     noWrap:true,
-    attribution:'&copy; OpenStreetMap'
+    attribution:"&copy; OpenStreetMap"
   }).addTo(map);
 
   const cluster = L.markerClusterGroup({
@@ -364,6 +496,7 @@
 
     const text = await res.text();
     allItems = parseTable(text);
+    rebuildLocationFilters(allItems);
 
     $("btnSeoulOnly").disabled = false;
     $("btnShowAll").disabled = false;
@@ -396,6 +529,7 @@
 
     const text = await file.text();
     allItems = parseTable(text);
+    rebuildLocationFilters(allItems);
 
     $("btnSeoulOnly").disabled = false;
     $("btnShowAll").disabled = false;
@@ -423,27 +557,15 @@
     if(allItems.length) render(allItems);
   }
 
-  $("file").addEventListener("change", e => handleChurchUpload(e.target.files[0]));
-  $("popFile").addEventListener("change", e => handlePopUpload(e.target.files[0]));
-
-  function inc(mapObj, key, by = 1){
-    const k = String(key ?? "").trim();
-    if(!k) return;
-    mapObj.set(k, (mapObj.get(k) || 0) + by);
-  }
-
-  function topN(mapObj, n){
-    return Array.from(mapObj.entries())
-      .sort((a,b) => b[1] - a[1])
-      .slice(0,n);
-  }
-
   function render(items){
     cluster.clearLayers();
     lastRendered = [];
     $("resultList").innerHTML = "";
 
     const tf = $("typeFilter").value;
+    const continentFilter = $("continentFilter").value;
+    const countryFilter = $("countryFilter").value;
+    const regionFilter = $("regionFilter").value;
     const q = normText($("qAll").value).toLowerCase();
 
     const normalized = items.map(it => {
@@ -452,20 +574,22 @@
       const lat = Number(it.lat);
       const lng = Number(it.lng);
 
-      const st = (it.status || "");
+      const st = String(it.status || "");
       const type =
         st.includes("새성전") ? "new" :
         (st.includes("현당") || st.includes("헌당")) ? "hall" :
         "church";
 
+      const cityNorm = normCity(it.country, it.city);
+      const districtNorm = normDistrict(it.district || "");
       const key = popKey(it.country, it.city, it.district);
       const population = populationMap.get(key) ?? null;
-
-      const cityNorm = normCity(it.country, it.city);
       const capital = isCapitalArea(it.country, cityNorm);
       const needChurches = population ? calcNeedChurchesFromPopulation(population, capital) : 0;
-
       const churchCount = Number(String(it["교회수"] || "1").replace(/,/g, "")) || 1;
+      const continentNorm = normText(it.continent || "");
+      const countryNorm = normText(it.country || "");
+      const regionLabel = [cityNorm, districtNorm].filter(Boolean).join(" ");
 
       return {
         raw: it,
@@ -479,14 +603,21 @@
         capital,
         needChurches,
         cityNorm,
+        districtNorm,
+        continentNorm,
+        countryNorm,
+        regionLabel,
         churchCount
       };
     })
     .filter(it => Number.isFinite(it.lat) && Number.isFinite(it.lng))
     .filter(it => tf === "all" ? true : it.type === tf)
+    .filter(it => continentFilter === "all" ? true : it.continentNorm === continentFilter)
+    .filter(it => countryFilter === "all" ? true : it.countryNorm === countryFilter)
+    .filter(it => regionFilter === "all" ? true : it.regionLabel === regionFilter)
     .filter(it => {
       if(!q) return true;
-      const blob = `${it.name} ${it.address} ${it.raw.continent||""} ${it.raw.country||""} ${it.cityNorm||""} ${it.raw.district||""} ${it.raw.status||""}`.toLowerCase();
+      const blob = `${it.name} ${it.address} ${it.continentNorm} ${it.countryNorm} ${it.cityNorm} ${it.districtNorm} ${it.raw.status || ""}`.toLowerCase();
       return blob.includes(q);
     });
 
@@ -495,12 +626,11 @@
 
     const contMap = new Map();
     const countryMap = new Map();
-
     const areaNeedMap = new Map();
 
     normalized.forEach(it => {
-      if(it.type === 'new') cNew++;
-      else if(it.type === 'hall') cHall++;
+      if(it.type === "new") cNew++;
+      else if(it.type === "hall") cHall++;
       else cChurch++;
 
       if(it.population) matchedPop++;
@@ -512,14 +642,14 @@
         });
       }
 
-      inc(contMap, it.raw.continent || "Unknown", it.churchCount);
-      inc(countryMap, it.raw.country || "Unknown", it.churchCount);
+      inc(contMap, it.continentNorm || "Unknown", it.churchCount);
+      inc(countryMap, it.countryNorm || "Unknown", it.churchCount);
 
-      const color = it.type === 'new'
-        ? '#ef4444'
-        : it.type === 'hall'
-        ? '#3b82f6'
-        : '#f59e0b';
+      const color = it.type === "new"
+        ? "#ef4444"
+        : it.type === "hall"
+        ? "#3b82f6"
+        : "#f59e0b";
 
       const googleUrl = buildGoogleMapUrl(it);
       const kakaoUrl = buildKakaoMapUrl(it);
@@ -527,7 +657,7 @@
       const popup = `
         <div style="min-width:220px;line-height:1.5;">
           <b>${escapeHtml(it.name)}</b><br>
-          ${escapeHtml(it.raw.country || "")} / ${escapeHtml(it.cityNorm || "")} / ${escapeHtml(it.raw.district || "")}<br>
+          ${escapeHtml(it.countryNorm || "")} / ${escapeHtml(it.cityNorm || "")} / ${escapeHtml(it.raw.district || "")}<br>
           ${escapeHtml(it.address)}<br>
           <b>교회수</b>: ${it.churchCount}<br>
           <b>인구</b>: ${it.population ? it.population.toLocaleString() : "-"}<br>
@@ -551,7 +681,10 @@
       lastRendered.push({ item: it, marker });
     });
 
-    let sumNeed = 0, sumNeedCapital = 0, sumNeedLocal = 0;
+    let sumNeed = 0;
+    let sumNeedCapital = 0;
+    let sumNeedLocal = 0;
+
     areaNeedMap.forEach(v => {
       sumNeed += v.need;
       if(v.capital) sumNeedCapital += v.need;
@@ -569,7 +702,7 @@
         <div class="itemName">${escapeHtml(it.name)}</div>
         <div class="itemAddr">${escapeHtml(it.address)}</div>
         <div class="itemSub">
-          <span class="pill">${escapeHtml(it.raw.country || "")}</span>
+          <span class="pill">${escapeHtml(it.countryNorm || "")}</span>
           <span class="pill">${escapeHtml(it.cityNorm || "")}</span>
           <span class="pill">${escapeHtml(it.raw.district || "")}</span>
           <span class="pill">교회수 ${it.churchCount}</span>
@@ -596,10 +729,8 @@
 
     $("chipValid").textContent = `valid ${normalized.length}`;
     $("typeCounts").textContent = `새성전 ${cNew} / 현당 ${cHall} / 교회 ${cChurch}`;
-
     $("sideMeta").textContent = `${normalized.length}개`;
     $("perfText").textContent = `rows: ${items.length} / 표시: ${normalized.length} / 인구매칭: ${matchedPop}`;
-
     $("statText").textContent =
       `예상 필요 교회수(인구 1%, 지역중복제거): ${sumNeed.toLocaleString()}개 (수도권 ${sumNeedCapital.toLocaleString()} / 지방 ${sumNeedLocal.toLocaleString()})`;
 
@@ -607,11 +738,11 @@
     const countryTop = topN(countryMap, 10);
 
     $("continentTop").innerHTML = contTop.length
-      ? contTop.map(([k,v]) => `<li>${escapeHtml(k)} <span class="mono">(${v})</span></li>`).join("")
+      ? contTop.map(([k, v]) => `<li>${escapeHtml(k)} <span class="mono">(${v})</span></li>`).join("")
       : "<li>-</li>";
 
     $("countryTop10").innerHTML = countryTop.length
-      ? countryTop.map(([k,v]) => `<li>${escapeHtml(k)} <span class="mono">(${v})</span></li>`).join("")
+      ? countryTop.map(([k, v]) => `<li>${escapeHtml(k)} <span class="mono">(${v})</span></li>`).join("")
       : "<li>-</li>";
 
     setStatus(`렌더 완료 ✅ 표시 ${normalized.length}개`);
@@ -620,6 +751,9 @@
       map.fitBounds(cluster.getBounds(), { padding:[20,20] });
     }
   }
+
+  $("file").addEventListener("change", e => handleChurchUpload(e.target.files[0]));
+  $("popFile").addEventListener("change", e => handlePopUpload(e.target.files[0]));
 
   $("btnLoadWorld").addEventListener("click", async () => {
     try{
@@ -643,12 +777,15 @@
 
   $("btnShowAll").addEventListener("click", () => render(allItems));
 
-  $("searchForm").addEventListener("submit", (e) => {
+  $("searchForm").addEventListener("submit", e => {
     e.preventDefault();
     render(allItems);
   });
 
   $("typeFilter").addEventListener("change", () => render(allItems));
+  $("continentFilter").addEventListener("change", () => render(allItems));
+  $("countryFilter").addEventListener("change", () => render(allItems));
+  $("regionFilter").addEventListener("change", () => render(allItems));
 
   (async () => {
     try{
