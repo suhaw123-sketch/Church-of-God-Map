@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>전세계/하나님의교회 세계복음선교협회 현황 지도 (최종 · 1%)</title>
 
   <!-- Leaflet -->
@@ -21,81 +21,199 @@
       --bg:#fff;
       --chip:#f6f6f6;
       --radius:12px;
-      --header-h:360px;
       --side-w:360px;
+      --header-real-h:360px;
+      --footer-real-h:44px;
     }
-    html,body{height:100%;margin:0;}
+
+    *{ box-sizing:border-box; }
+
+    html,body{
+      height:100%;
+      margin:0;
+    }
+
     body{
       font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
       background:var(--bg);
       overflow:hidden;
     }
+
     header{
-      position:fixed;top:0;left:0;right:0;z-index:2000;
-      padding:14px 14px 10px;border-bottom:1px solid var(--border);
-      background:#fff;display:grid;gap:10px;box-sizing:border-box;
+      position:fixed;
+      top:0;
+      left:0;
+      right:0;
+      z-index:2000;
+      padding:14px 14px 10px;
+      border-bottom:1px solid var(--border);
+      background:#fff;
+      display:grid;
+      gap:10px;
     }
+
     .titleRow{
-      display:flex;justify-content:space-between;align-items:center;gap:12px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
     }
+
     .title{
-      font-weight:800;font-size:22px;letter-spacing:-.3px;
+      font-weight:800;
+      font-size:22px;
+      letter-spacing:-.3px;
     }
-    .small{font-size:12px;color:var(--muted);}
+
+    .small{
+      font-size:12px;
+      color:var(--muted);
+    }
+
     .row{
-      display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
     }
-    input[type="file"], input[type="text"], select{
-      padding:10px 12px;border:1px solid #ddd;border-radius:10px;
-      background:#fff;outline:none;
+
+    input[type="file"],
+    input[type="text"],
+    select{
+      padding:10px 12px;
+      border:1px solid #ddd;
+      border-radius:10px;
+      background:#fff;
+      outline:none;
     }
-    input[type="text"]{flex:1;min-width:260px;}
-    select{min-width:140px;}
+
+    input[type="text"]{
+      flex:1;
+      min-width:260px;
+    }
+
+    select{
+      min-width:140px;
+    }
+
     button{
-      padding:10px 12px;border:1px solid #ccc;border-radius:10px;
-      background:#fff;cursor:pointer;
+      padding:10px 12px;
+      border:1px solid #ccc;
+      border-radius:10px;
+      background:#fff;
+      cursor:pointer;
     }
-    button:disabled{opacity:.5;cursor:not-allowed;}
+
+    button:disabled{
+      opacity:.5;
+      cursor:not-allowed;
+    }
+
     .chip{
-      display:inline-flex;align-items:center;gap:6px;background:var(--chip);
-      border:1px solid #eee;border-radius:999px;padding:2px 8px;
-      font-size:12px;color:#333;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      background:var(--chip);
+      border:1px solid #eee;
+      border-radius:999px;
+      padding:2px 8px;
+      font-size:12px;
+      color:#333;
     }
-    .dash{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+    .dash{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
     .card{
-      border:1px solid var(--border);border-radius:var(--radius);
-      padding:12px;background:#fff;
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:12px;
+      background:#fff;
     }
+
     .cardTitle{
-      font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:6px;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-bottom:6px;
     }
+
     .mono{
       font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
     }
-    .list{margin:0;padding-left:18px;}
-    .list li{margin:3px 0;}
+
+    .list{
+      margin:0;
+      padding-left:18px;
+    }
+
+    .list li{
+      margin:3px 0;
+    }
 
     #wrap{
-      position:fixed;top:var(--header-h);left:0;right:0;bottom:44px;
-      display:flex;min-height:0;
+      position:fixed;
+      top:var(--header-real-h);
+      left:0;
+      right:0;
+      bottom:var(--footer-real-h);
+      display:flex;
+      min-height:0;
+      overflow:hidden;
     }
+
     #mapWrap{
-      flex:1 1 auto;position:relative;min-width:0;border-right:1px solid var(--border);
+      flex:1 1 auto;
+      position:relative;
+      min-width:0;
+      min-height:0;
+      border-right:1px solid var(--border);
+      background:#eef;
     }
-    #map{height:100%;width:100%;background:#eef;}
+
+    #map{
+      width:100%;
+      height:100%;
+      min-height:320px;
+      background:#eef;
+    }
+
     #side{
-      width:var(--side-w);max-width:48vw;background:#fff;
-      display:flex;flex-direction:column;min-height:0;
+      width:var(--side-w);
+      max-width:48vw;
+      background:#fff;
+      display:flex;
+      flex-direction:column;
+      min-height:0;
     }
+
     .sideHeader{
-      padding:12px 12px 10px;border-bottom:1px solid var(--border);
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      padding:12px 12px 10px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
     }
+
     .sideTitle{
-      font-weight:800;font-size:14px;letter-spacing:-.2px;
-      display:flex;align-items:center;gap:8px;
+      font-weight:800;
+      font-size:14px;
+      letter-spacing:-.2px;
+      display:flex;
+      align-items:center;
+      gap:8px;
     }
-    .sideMeta{font-size:12px;color:var(--muted);white-space:nowrap;}
+
+    .sideMeta{
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap;
+    }
 
     #resultList{
       flex:1 1 auto;
@@ -107,84 +225,233 @@
       gap:8px;
       scrollbar-width:thin;
       scrollbar-color:#c7c7c7 #f3f3f3;
+      min-height:0;
     }
+
     #resultList::-webkit-scrollbar{
       width:12px;
     }
+
     #resultList::-webkit-scrollbar-track{
       background:#f3f3f3;
       border-left:1px solid #eee;
     }
+
     #resultList::-webkit-scrollbar-thumb{
       background:#c7c7c7;
       border-radius:999px;
       border:2px solid #f3f3f3;
     }
+
     #resultList::-webkit-scrollbar-thumb:hover{
       background:#a8a8a8;
     }
 
     .item{
-      border:1px solid #eee;border-radius:12px;padding:10px;cursor:pointer;
-      background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.03);
+      border:1px solid #eee;
+      border-radius:12px;
+      padding:10px;
+      cursor:pointer;
+      background:#fff;
+      box-shadow:0 1px 0 rgba(0,0,0,.03);
     }
-    .item:hover{background:#fafafa;}
-    .itemName{font-weight:800;font-size:13px;margin-bottom:4px;}
-    .itemAddr{font-size:12px;color:#444;line-height:1.35;}
+
+    .item:hover{
+      background:#fafafa;
+    }
+
+    .itemName{
+      font-weight:800;
+      font-size:13px;
+      margin-bottom:4px;
+    }
+
+    .itemAddr{
+      font-size:12px;
+      color:#444;
+      line-height:1.35;
+    }
+
     .itemSub{
-      font-size:11px;color:var(--muted);margin-top:6px;
-      display:flex;gap:8px;flex-wrap:wrap;
+      font-size:11px;
+      color:var(--muted);
+      margin-top:6px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
     }
+
     .pill{
-      font-size:11px;border:1px solid #eee;background:#f7f7f7;
-      padding:2px 6px;border-radius:999px;
+      font-size:11px;
+      border:1px solid #eee;
+      background:#f7f7f7;
+      padding:2px 6px;
+      border-radius:999px;
     }
 
     .mapLegend{
-      position:absolute;bottom:20px;right:20px;background:rgba(255,255,255,0.95);
-      backdrop-filter:blur(6px);padding:10px 14px;border-radius:12px;
-      box-shadow:0 4px 16px rgba(0,0,0,.15);display:flex;flex-direction:column;
-      gap:8px;font-size:12px;z-index:1000;pointer-events:none;user-select:none;
+      position:absolute;
+      bottom:20px;
+      right:20px;
+      background:rgba(255,255,255,0.95);
+      backdrop-filter:blur(6px);
+      padding:10px 14px;
+      border-radius:12px;
+      box-shadow:0 4px 16px rgba(0,0,0,.15);
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      font-size:12px;
+      z-index:1000;
+      pointer-events:none;
+      user-select:none;
     }
-    .mapLegend .legendItem{
-      display:flex;align-items:center;gap:8px;color:#222;white-space:nowrap;
-    }
-    .legendCount{color:#555;font-variant-numeric:tabular-nums;}
 
-    .mapBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
-    .mapBtn{
-      display:inline-block;padding:6px 10px;border:1px solid #ddd;border-radius:8px;
-      text-decoration:none;color:#222;background:#fff;font-size:12px;
+    .mapLegend .legendItem{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      color:#222;
+      white-space:nowrap;
     }
-    .mapBtn:hover{background:#f8f8f8;}
+
+    .legendCount{
+      color:#555;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .mapBtns{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+
+    .mapBtn{
+      display:inline-block;
+      padding:6px 10px;
+      border:1px solid #ddd;
+      border-radius:8px;
+      text-decoration:none;
+      color:#222;
+      background:#fff;
+      font-size:12px;
+    }
+
+    .mapBtn:hover{
+      background:#f8f8f8;
+    }
 
     #bottomNote{
-      position:fixed;left:0;right:0;bottom:0;z-index:2600;
-      background:#fff;border-top:1px solid var(--border);
-      padding:10px 14px;color:var(--muted);font-size:11px;line-height:1.45;
-      box-sizing:border-box;
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      z-index:2600;
+      background:#fff;
+      border-top:1px solid var(--border);
+      padding:10px 14px;
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.45;
     }
 
     @media(max-width:1100px){
-      :root{--header-h:420px;}
-      .dash{grid-template-columns:1fr 1fr;}
+      .dash{
+        grid-template-columns:1fr 1fr;
+      }
     }
+
     @media(max-width:900px){
-      :root{--header-h:560px;}
-      .dash{grid-template-columns:1fr;}
-      #side{width:44vw;}
+      .dash{
+        grid-template-columns:1fr;
+      }
+
+      #side{
+        width:44vw;
+      }
     }
+
     @media(max-width:720px){
-      :root{--header-h:680px;}
-      #wrap{flex-direction:column;}
-      #mapWrap{border-right:none;border-bottom:1px solid var(--border);height:58%;}
-      #side{width:100%;max-width:none;height:42%;}
+      body{
+        overflow:hidden;
+      }
+
+      #wrap{
+        flex-direction:column;
+      }
+
+      #mapWrap{
+        border-right:none;
+        border-bottom:1px solid var(--border);
+        flex:0 0 58%;
+        min-height:300px;
+      }
+
+      #map{
+        min-height:300px;
+      }
+
+      #side{
+        width:100%;
+        max-width:none;
+        flex:1 1 42%;
+        min-height:180px;
+      }
+
+      .title{
+        font-size:18px;
+      }
+
+      .titleRow{
+        align-items:flex-start;
+        flex-direction:column;
+      }
+
+      .row{
+        align-items:stretch;
+      }
+
+      input[type="text"],
+      select,
+      button{
+        width:100%;
+        min-width:0;
+      }
+
+      #searchForm{
+        width:100%;
+        flex-direction:column;
+      }
+
+      .mapLegend{
+        right:10px;
+        bottom:10px;
+        padding:8px 10px;
+        font-size:11px;
+      }
+    }
+
+    @media(max-width:480px){
+      #mapWrap{
+        flex:0 0 54%;
+        min-height:280px;
+      }
+
+      #map{
+        min-height:280px;
+      }
+
+      #bottomNote{
+        font-size:10px;
+        padding:8px 10px;
+      }
     }
   </style>
 </head>
 <body>
 
-<header>
+<header id="pageHeader">
   <div class="titleRow">
     <div class="title">전세계/서울 교회 현황 지도 v3</div>
     <div class="small" id="status">대기 중…</div>
@@ -508,7 +775,41 @@
       .slice(0, n);
   }
 
-  const map = L.map("map", { worldCopyJump:true }).setView([20, 0], 2);
+  function updateLayoutVars(){
+    const header = $("pageHeader");
+    const footer = $("bottomNote");
+    const root = document.documentElement;
+
+    const headerH = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
+    const footerH = footer ? Math.ceil(footer.getBoundingClientRect().height) : 0;
+
+    root.style.setProperty("--header-real-h", `${headerH}px`);
+    root.style.setProperty("--footer-real-h", `${footerH}px`);
+  }
+
+  let mapResizeTimer = null;
+
+  function invalidateMapNow(){
+    updateLayoutVars();
+    map.invalidateSize(true);
+  }
+
+  function scheduleMapResize(delay = 0){
+    if(mapResizeTimer) clearTimeout(mapResizeTimer);
+    mapResizeTimer = setTimeout(() => {
+      updateLayoutVars();
+
+      requestAnimationFrame(() => {
+        map.invalidateSize(true);
+        setTimeout(() => map.invalidateSize(true), 120);
+        setTimeout(() => map.invalidateSize(true), 320);
+      });
+    }, delay);
+  }
+
+  const map = L.map("map", {
+    worldCopyJump:true
+  }).setView([20, 0], 2);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom:19,
@@ -751,7 +1052,8 @@
         const obj = lastRendered[idx];
         if(obj?.marker){
           map.setView(obj.marker.getLatLng(), 15, { animate:true });
-          obj.marker.openPopup();
+          scheduleMapResize(50);
+          setTimeout(() => obj.marker.openPopup(), 120);
         }
       });
       listEl.appendChild(div);
@@ -781,8 +1083,18 @@
 
     setStatus(`렌더 완료 ✅ 표시 ${normalized.length}개`);
 
+    updateLayoutVars();
+    scheduleMapResize(30);
+
     if(cluster.getLayers().length){
-      map.fitBounds(cluster.getBounds(), { padding:[20,20] });
+      setTimeout(() => {
+        try{
+          map.fitBounds(cluster.getBounds(), { padding:[20,20] });
+          scheduleMapResize(60);
+        }catch(e){
+          console.error(e);
+        }
+      }, 60);
     }
   }
 
@@ -821,17 +1133,64 @@
   $("countryFilter").addEventListener("change", () => render(allItems));
   $("regionFilter").addEventListener("change", () => render(allItems));
 
+  window.addEventListener("load", () => {
+    updateLayoutVars();
+    scheduleMapResize(50);
+  });
+
+  window.addEventListener("resize", () => {
+    updateLayoutVars();
+    scheduleMapResize(80);
+  });
+
+  window.addEventListener("orientationchange", () => {
+    updateLayoutVars();
+    scheduleMapResize(120);
+    setTimeout(() => scheduleMapResize(300), 300);
+    setTimeout(() => scheduleMapResize(600), 600);
+  });
+
+  window.addEventListener("pageshow", () => {
+    updateLayoutVars();
+    scheduleMapResize(80);
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if(!document.hidden){
+      updateLayoutVars();
+      scheduleMapResize(120);
+    }
+  });
+
+  if(window.ResizeObserver){
+    const ro = new ResizeObserver(() => {
+      updateLayoutVars();
+      scheduleMapResize(80);
+    });
+
+    ro.observe($("pageHeader"));
+    ro.observe($("bottomNote"));
+    ro.observe($("mapWrap"));
+  }
+
   (async () => {
     try{
+      updateLayoutVars();
+      invalidateMapNow();
+
       await loadChurchCSVFromURL();
       await loadPopulationCSVFromURL();
       render(allItems);
+
+      setTimeout(() => scheduleMapResize(100), 100);
+      setTimeout(() => scheduleMapResize(300), 300);
     }catch(e){
       console.error(e);
       setStatus("자동 로드 실패(전세계 불러오기 버튼으로 재시도)");
+      updateLayoutVars();
+      scheduleMapResize(100);
     }
   })();
 </script>
 </body>
 </html>
-
