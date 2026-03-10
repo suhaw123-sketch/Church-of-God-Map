@@ -413,7 +413,7 @@
 
   function buildGoogleMapUrl(it){
     if(Number.isFinite(it.lat) && Number.isFinite(it.lng)){
-      return `https://www.google.com/maps?q=${encodeURIComponent(it.lat + "," + it.lng)}`;
+      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(it.lat + "," + it.lng)}`;
     }
     const query = buildSearchQuery(it);
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
