@@ -46,14 +46,33 @@
     #resultList{overflow:auto;padding:10px 10px 14px;display:flex;flex-direction:column;gap:8px;}
     .item{border:1px solid #eee;border-radius:12px;padding:10px;cursor:pointer;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.03);}
     .item:hover{background:#fafafa;}
+    .item.active{border-color:#222;box-shadow:0 2px 12px rgba(0,0,0,.10);}
     .itemName{font-weight:800;font-size:13px;margin-bottom:4px;}
     .itemAddr{font-size:12px;color:#444;line-height:1.35;}
     .itemSub{font-size:11px;color:var(--muted);margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;}
     .pill{font-size:11px;border:1px solid #eee;background:#f7f7f7;padding:2px 6px;border-radius:999px;}
 
-    .mapLegend{position:absolute;bottom:20px;right:20px;background:rgba(255,255,255,0.95);backdrop-filter:blur(6px);padding:10px 14px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.15);display:flex;flex-direction:column;gap:8px;font-size:12px;z-index:1000;pointer-events:none;user-select:none;}
+    .mapLegend{
+      position:absolute;bottom:20px;right:20px;background:rgba(255,255,255,0.95);
+      backdrop-filter:blur(6px);padding:10px 14px;border-radius:12px;
+      box-shadow:0 4px 16px rgba(0,0,0,.15);display:flex;flex-direction:column;
+      gap:8px;font-size:12px;z-index:1000;pointer-events:none;user-select:none;
+    }
     .mapLegend .legendItem{display:flex;align-items:center;gap:8px;color:#222;white-space:nowrap;}
     .legendCount{color:#555;font-variant-numeric:tabular-nums;}
+
+    .mapBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+    .mapBtn{
+      display:inline-block;
+      padding:6px 10px;
+      border:1px solid #ddd;
+      border-radius:8px;
+      text-decoration:none;
+      color:#222;
+      background:#fff;
+      font-size:12px;
+    }
+    .mapBtn:hover{background:#f8f8f8;}
 
     #bottomNote{
       position:fixed;left:0;right:0;bottom:0;z-index:2600;
@@ -62,8 +81,15 @@
       box-sizing:border-box;
     }
 
-    @media(max-width:900px){.dash{grid-template-columns:1fr;}#side{width:44vw;}}
-    @media(max-width:720px){#wrap{flex-direction:column;}#mapWrap{border-right:none;border-bottom:1px solid var(--border);height:58%;}#side{width:100%;max-width:none;height:42%;}}
+    @media(max-width:900px){
+      .dash{grid-template-columns:1fr;}
+      #side{width:44vw;}
+    }
+    @media(max-width:720px){
+      #wrap{flex-direction:column;}
+      #mapWrap{border-right:none;border-bottom:1px solid var(--border);height:58%;}
+      #side{width:100%;max-width:none;height:42%;}
+    }
   </style>
 </head>
 <body>
@@ -123,7 +149,7 @@
 <div id="wrap">
   <div id="mapWrap">
     <div id="map"></div>
-    <div class="mapLegend">
+    <div class="mapLegend" aria-label="legend">
       <div class="legendItem">🔴 새성전 <span class="legendCount" id="legendNew">0</span></div>
       <div class="legendItem">🔵 현당/헌당 <span class="legendCount" id="legendHall">0</span></div>
       <div class="legendItem">🟡 교회 <span class="legendCount" id="legendChurch">0</span></div>
@@ -151,14 +177,16 @@
   const CHURCH_CSV_URL = "/Church-of-God-Map/data/churches.csv";
   const POP_CSV_URL    = "/Church-of-God-Map/data/population.csv";
 
-  // ✅ 1% 기준
-  const POP_RATE = 0.01; // 전체 인구 중 1%
+  // 1% 기준
+  const POP_RATE = 0.01;
   const CAPITAL_CITIES = new Set(["서울","서울특별시","경기","경기도","인천","인천광역시"]);
 
-  function setStatus(msg){ $("status").textContent = msg; }
+  function setStatus(msg){
+    $("status").textContent = msg;
+  }
 
   function escapeHtml(s){
-    return String(s??"")
+    return String(s ?? "")
       .replaceAll("&","&amp;")
       .replaceAll("<","&lt;")
       .replaceAll(">","&gt;")
@@ -167,14 +195,14 @@
   }
 
   function normText(s){
-    return String(s||"")
+    return String(s || "")
       .replace(/\u00A0/g, " ")
       .replace(/\s+/g, " ")
       .trim();
   }
 
   function normCity(country, city){
-    const ctry = String(country||"").trim().toLowerCase();
+    const ctry = String(country || "").trim().toLowerCase();
     let c = normText(city);
 
     if(ctry.includes("korea") || ctry.includes("대한민국")){
@@ -197,6 +225,7 @@
     const city = String(cityRaw || "").trim();
     const isKorea = country.includes("korea") || country.includes("대한민국");
     if(!isKorea) return false;
+
     for(const k of CAPITAL_CITIES){
       if(city.includes(k)) return true;
     }
@@ -205,45 +234,57 @@
 
   function calcNeedChurchesFromPopulation(population, capital){
     if(!Number.isFinite(population) || population <= 0) return 0;
-    const targetPeople = population * POP_RATE; // 1%
+    const targetPeople = population * POP_RATE;
     const denom = capital ? 1000 : 300;
     return Math.ceil(targetPeople / denom);
   }
 
   function parseTable(text){
-    text = String(text||"").replace(/^\uFEFF/,"").trim();
+    text = String(text || "").replace(/^\uFEFF/, "").trim();
     if(!text) return [];
+
     const firstLine = text.split(/\r?\n/,1)[0] || "";
     const isTSV = firstLine.includes("\t") && !firstLine.includes(",");
 
     if(isTSV){
-      const lines = text.split(/\r?\n/).filter(l=>l.trim().length);
-      const header = lines.shift().split("\t").map(s=>s.trim());
-      return lines.map(line=>{
+      const lines = text.split(/\r?\n/).filter(l => l.trim().length);
+      const header = lines.shift().split("\t").map(s => s.trim());
+      return lines.map(line => {
         const cols = line.split("\t");
         const o = {};
-        header.forEach((h,i)=> o[h] = (cols[i] ?? "").trim());
+        header.forEach((h, i) => o[h] = (cols[i] ?? "").trim());
         return o;
       });
     }
 
     const rows = [];
     let cur = [], val = "", inQuotes = false;
-    const pushVal = ()=>{ cur.push(val); val=""; };
+
+    const pushVal = ()=>{ cur.push(val); val = ""; };
     const pushRow = ()=>{
-      if(cur.length===1 && String(cur[0]||"").trim()===""){ cur=[]; return; }
-      rows.push(cur); cur=[];
+      if(cur.length === 1 && String(cur[0] || "").trim() === ""){
+        cur = [];
+        return;
+      }
+      rows.push(cur);
+      cur = [];
     };
 
-    for(let i=0;i<text.length;i++){
+    for(let i=0; i<text.length; i++){
       const ch = text[i];
       if(inQuotes){
         if(ch === '"'){
           const next = text[i+1];
-          if(next === '"'){ val += '"'; i++; }
-          else inQuotes = false;
-        } else val += ch;
-      } else {
+          if(next === '"'){
+            val += '"';
+            i++;
+          }else{
+            inQuotes = false;
+          }
+        }else{
+          val += ch;
+        }
+      }else{
         if(ch === '"') inQuotes = true;
         else if(ch === ",") pushVal();
         else if(ch === "\n"){ pushVal(); pushRow(); }
@@ -251,13 +292,15 @@
         else val += ch;
       }
     }
-    pushVal(); pushRow();
+    pushVal();
+    pushRow();
 
     if(!rows.length) return [];
-    const header = rows.shift().map(h=>String(h||"").trim());
-    return rows.map(r=>{
+    const header = rows.shift().map(h => String(h || "").trim());
+
+    return rows.map(r => {
       const o = {};
-      header.forEach((h,i)=> o[h] = String(r[i] ?? "").trim());
+      header.forEach((h, i) => o[h] = String(r[i] ?? "").trim());
       return o;
     });
   }
@@ -273,17 +316,55 @@
     return `${ctry}|${cty}|${dist}`;
   }
 
-  const map = L.map('map',{worldCopyJump:true}).setView([20,0],2);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,noWrap:true,attribution:'&copy; OpenStreetMap'}).addTo(map);
-  const cluster = L.markerClusterGroup({showCoverageOnHover:false,disableClusteringAtZoom:16,chunkedLoading:true});
+  function buildSearchQuery(it){
+    const parts = [
+      it.name || "",
+      it.raw.country || "",
+      it.cityNorm || "",
+      it.raw.district || "",
+      it.address || ""
+    ].filter(Boolean);
+
+    return parts.join(" ").replace(/\s+/g, " ").trim();
+  }
+
+  function buildGoogleMapUrl(it){
+    if(Number.isFinite(it.lat) && Number.isFinite(it.lng)){
+      return `https://www.google.com/maps/search/?api=1&query=${it.lat},${it.lng}`;
+    }
+    const query = buildSearchQuery(it);
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  }
+
+  function buildKakaoMapUrl(it){
+    const query = buildSearchQuery(it);
+    return `https://map.kakao.com/?q=${encodeURIComponent(query)}`;
+  }
+
+  // 지도
+  const map = L.map('map', { worldCopyJump:true }).setView([20,0], 2);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom:19,
+    noWrap:true,
+    attribution:'&copy; OpenStreetMap'
+  }).addTo(map);
+
+  const cluster = L.markerClusterGroup({
+    showCoverageOnHover:false,
+    disableClusteringAtZoom:16,
+    chunkedLoading:true
+  });
   map.addLayer(cluster);
 
   async function loadChurchCSVFromURL(){
     setStatus("교회 CSV 불러오는 중…");
     const res = await fetch(CHURCH_CSV_URL, { cache:"no-store" });
     if(!res.ok) throw new Error(`교회 CSV 로드 실패: ${res.status}`);
+
     const text = await res.text();
     allItems = parseTable(text);
+
     $("btnSeoulOnly").disabled = false;
     $("btnShowAll").disabled = false;
     setStatus(`교회 데이터 로드 ✅ ${allItems.length}개`);
@@ -293,14 +374,17 @@
     setStatus("인구 CSV 불러오는 중…");
     const res = await fetch(POP_CSV_URL, { cache:"no-store" });
     if(!res.ok) throw new Error(`인구 CSV 로드 실패: ${res.status}`);
+
     const text = await res.text();
     const rows = parseTable(text);
 
     populationMap = new Map();
-    rows.forEach(o=>{
+    rows.forEach(o => {
       const key = popKey(o.country, o.city, o.district);
-      const pop = Number(String(o.population||"").replace(/,/g,""));
-      if(key !== "||" && Number.isFinite(pop)) populationMap.set(key, pop);
+      const pop = Number(String(o.population || "").replace(/,/g, ""));
+      if(key !== "||" && Number.isFinite(pop)){
+        populationMap.set(key, pop);
+      }
     });
 
     setStatus(`인구 데이터 로드 ✅ ${populationMap.size}개`);
@@ -309,38 +393,49 @@
   async function handleChurchUpload(file){
     if(!file) return;
     setStatus("교회 업로드 읽는 중…");
+
     const text = await file.text();
     allItems = parseTable(text);
+
     $("btnSeoulOnly").disabled = false;
     $("btnShowAll").disabled = false;
     setStatus(`교회 업로드 ✅ ${allItems.length}개`);
     render(allItems);
   }
+
   async function handlePopUpload(file){
     if(!file) return;
     setStatus("인구 업로드 읽는 중…");
+
     const text = await file.text();
     const rows = parseTable(text);
+
     populationMap = new Map();
-    rows.forEach(o=>{
+    rows.forEach(o => {
       const key = popKey(o.country, o.city, o.district);
-      const pop = Number(String(o.population||"").replace(/,/g,""));
-      if(key !== "||" && Number.isFinite(pop)) populationMap.set(key, pop);
+      const pop = Number(String(o.population || "").replace(/,/g, ""));
+      if(key !== "||" && Number.isFinite(pop)){
+        populationMap.set(key, pop);
+      }
     });
+
     setStatus(`인구 업로드 ✅ ${populationMap.size}개`);
     if(allItems.length) render(allItems);
   }
 
-  $("file").addEventListener("change", e=>handleChurchUpload(e.target.files[0]));
-  $("popFile").addEventListener("change", e=>handlePopUpload(e.target.files[0]));
+  $("file").addEventListener("change", e => handleChurchUpload(e.target.files[0]));
+  $("popFile").addEventListener("change", e => handlePopUpload(e.target.files[0]));
 
-  function inc(map, key, by=1){
-    const k = String(key??"").trim();
+  function inc(mapObj, key, by = 1){
+    const k = String(key ?? "").trim();
     if(!k) return;
-    map.set(k, (map.get(k) || 0) + by);
+    mapObj.set(k, (mapObj.get(k) || 0) + by);
   }
-  function topN(map, n){
-    return Array.from(map.entries()).sort((a,b)=>b[1]-a[1]).slice(0,n);
+
+  function topN(mapObj, n){
+    return Array.from(mapObj.entries())
+      .sort((a,b) => b[1] - a[1])
+      .slice(0,n);
   }
 
   function render(items){
@@ -351,14 +446,17 @@
     const tf = $("typeFilter").value;
     const q = normText($("qAll").value).toLowerCase();
 
-    const normalized = items.map(it=>{
+    const normalized = items.map(it => {
       const name = it.name || "";
       const address = it.address || "";
       const lat = Number(it.lat);
       const lng = Number(it.lng);
 
       const st = (it.status || "");
-      const type = st.includes("새성전") ? "new" : (st.includes("현당") || st.includes("헌당")) ? "hall" : "church";
+      const type =
+        st.includes("새성전") ? "new" :
+        (st.includes("현당") || st.includes("헌당")) ? "hall" :
+        "church";
 
       const key = popKey(it.country, it.city, it.district);
       const population = populationMap.get(key) ?? null;
@@ -367,69 +465,125 @@
       const capital = isCapitalArea(it.country, cityNorm);
       const needChurches = population ? calcNeedChurchesFromPopulation(population, capital) : 0;
 
-      return { raw:it, name, address, lat, lng, type, key, population, capital, needChurches, cityNorm };
+      const churchCount = Number(String(it["교회수"] || "1").replace(/,/g, "")) || 1;
+
+      return {
+        raw: it,
+        name,
+        address,
+        lat,
+        lng,
+        type,
+        key,
+        population,
+        capital,
+        needChurches,
+        cityNorm,
+        churchCount
+      };
     })
-    .filter(it=>Number.isFinite(it.lat) && Number.isFinite(it.lng))
-    .filter(it=> tf==="all" ? true : it.type===tf)
-    .filter(it=>{
+    .filter(it => Number.isFinite(it.lat) && Number.isFinite(it.lng))
+    .filter(it => tf === "all" ? true : it.type === tf)
+    .filter(it => {
       if(!q) return true;
       const blob = `${it.name} ${it.address} ${it.raw.continent||""} ${it.raw.country||""} ${it.cityNorm||""} ${it.raw.district||""} ${it.raw.status||""}`.toLowerCase();
       return blob.includes(q);
     });
 
-    let cNew=0, cHall=0, cChurch=0;
-    let sumNeed=0, sumNeedCapital=0, sumNeedLocal=0;
-    let matchedPop=0;
+    let cNew = 0, cHall = 0, cChurch = 0;
+    let matchedPop = 0;
 
     const contMap = new Map();
     const countryMap = new Map();
 
-    normalized.forEach(it=>{
-      if(it.type==='new') cNew++; else if(it.type==='hall') cHall++; else cChurch++;
+    const areaNeedMap = new Map();
+
+    normalized.forEach(it => {
+      if(it.type === 'new') cNew++;
+      else if(it.type === 'hall') cHall++;
+      else cChurch++;
+
       if(it.population) matchedPop++;
 
-      sumNeed += it.needChurches;
-      if(it.needChurches){
-        if(it.capital) sumNeedCapital += it.needChurches;
-        else sumNeedLocal += it.needChurches;
+      if(!areaNeedMap.has(it.key) && it.needChurches){
+        areaNeedMap.set(it.key, {
+          need: it.needChurches,
+          capital: it.capital
+        });
       }
 
-      inc(contMap, it.raw.continent || "Unknown");
-      inc(countryMap, it.raw.country || "Unknown");
+      inc(contMap, it.raw.continent || "Unknown", it.churchCount);
+      inc(countryMap, it.raw.country || "Unknown", it.churchCount);
 
-      const color = it.type==='new' ? '#ef4444' : it.type==='hall' ? '#3b82f6' : '#f59e0b';
+      const color = it.type === 'new'
+        ? '#ef4444'
+        : it.type === 'hall'
+        ? '#3b82f6'
+        : '#f59e0b';
+
+      const googleUrl = buildGoogleMapUrl(it);
+      const kakaoUrl = buildKakaoMapUrl(it);
+
       const popup = `
-        <b>${escapeHtml(it.name)}</b><br>
-        ${escapeHtml(it.raw.country||"")} / ${escapeHtml(it.cityNorm||"")} / ${escapeHtml(it.raw.district||"")}<br>
-        ${escapeHtml(it.address)}<br>
-        <b>인구</b>: ${it.population ? it.population.toLocaleString() : "-"}<br>
-        <b>적정인원(1%)</b>: ${it.population ? Math.round(it.population*POP_RATE).toLocaleString() : "-"}<br>
-        <b>예상 필요 교회수</b>: ${it.needChurches} (${it.capital ? "수도권/1000" : "지방/300"})
+        <div style="min-width:220px;line-height:1.5;">
+          <b>${escapeHtml(it.name)}</b><br>
+          ${escapeHtml(it.raw.country || "")} / ${escapeHtml(it.cityNorm || "")} / ${escapeHtml(it.raw.district || "")}<br>
+          ${escapeHtml(it.address)}<br>
+          <b>교회수</b>: ${it.churchCount}<br>
+          <b>인구</b>: ${it.population ? it.population.toLocaleString() : "-"}<br>
+          <b>적정인원(1%)</b>: ${it.population ? Math.round(it.population * POP_RATE).toLocaleString() : "-"}<br>
+          <b>예상 필요 교회수</b>: ${it.needChurches} (${it.capital ? "수도권/1000" : "지방/300"})<br>
+          <div class="mapBtns">
+            <a href="${googleUrl}" target="_blank" rel="noopener noreferrer" class="mapBtn">구글지도</a>
+            <a href="${kakaoUrl}" target="_blank" rel="noopener noreferrer" class="mapBtn">카카오맵</a>
+          </div>
+        </div>
       `;
 
-      const marker = L.circleMarker([it.lat,it.lng],{radius:8,color:color,fillColor:color,fillOpacity:0.85}).bindPopup(popup);
+      const marker = L.circleMarker([it.lat, it.lng], {
+        radius:8,
+        color:color,
+        fillColor:color,
+        fillOpacity:0.85
+      }).bindPopup(popup);
+
       cluster.addLayer(marker);
-      lastRendered.push({item:it, marker});
+      lastRendered.push({ item: it, marker });
+    });
+
+    let sumNeed = 0, sumNeedCapital = 0, sumNeedLocal = 0;
+    areaNeedMap.forEach(v => {
+      sumNeed += v.need;
+      if(v.capital) sumNeedCapital += v.need;
+      else sumNeedLocal += v.need;
     });
 
     const listEl = $("resultList");
-    normalized.forEach((it, idx)=>{
+    normalized.forEach((it, idx) => {
+      const googleUrl = buildGoogleMapUrl(it);
+      const kakaoUrl = buildKakaoMapUrl(it);
+
       const div = document.createElement("div");
       div.className = "item";
       div.innerHTML = `
         <div class="itemName">${escapeHtml(it.name)}</div>
         <div class="itemAddr">${escapeHtml(it.address)}</div>
         <div class="itemSub">
-          <span class="pill">${escapeHtml(it.raw.country||"")}</span>
-          <span class="pill">${escapeHtml(it.cityNorm||"")}</span>
-          <span class="pill">${escapeHtml(it.raw.district||"")}</span>
+          <span class="pill">${escapeHtml(it.raw.country || "")}</span>
+          <span class="pill">${escapeHtml(it.cityNorm || "")}</span>
+          <span class="pill">${escapeHtml(it.raw.district || "")}</span>
+          <span class="pill">교회수 ${it.churchCount}</span>
           <span class="pill">예상 ${it.needChurches}개</span>
         </div>
+        <div class="mapBtns">
+          <a href="${googleUrl}" target="_blank" rel="noopener noreferrer" class="mapBtn" onclick="event.stopPropagation();">구글지도</a>
+          <a href="${kakaoUrl}" target="_blank" rel="noopener noreferrer" class="mapBtn" onclick="event.stopPropagation();">카카오맵</a>
+        </div>
       `;
-      div.addEventListener("click", ()=>{
+      div.addEventListener("click", () => {
         const obj = lastRendered[idx];
         if(obj?.marker){
-          map.setView(obj.marker.getLatLng(), 15, {animate:true});
+          map.setView(obj.marker.getLatLng(), 15, { animate:true });
           obj.marker.openPopup();
         }
       });
@@ -447,27 +601,27 @@
     $("perfText").textContent = `rows: ${items.length} / 표시: ${normalized.length} / 인구매칭: ${matchedPop}`;
 
     $("statText").textContent =
-      `예상 필요 교회수(인구 1%): ${sumNeed.toLocaleString()}개 (수도권 ${sumNeedCapital.toLocaleString()} / 지방 ${sumNeedLocal.toLocaleString()})`;
+      `예상 필요 교회수(인구 1%, 지역중복제거): ${sumNeed.toLocaleString()}개 (수도권 ${sumNeedCapital.toLocaleString()} / 지방 ${sumNeedLocal.toLocaleString()})`;
 
     const contTop = topN(contMap, 6);
     const countryTop = topN(countryMap, 10);
 
     $("continentTop").innerHTML = contTop.length
-      ? contTop.map(([k,v])=>`<li>${escapeHtml(k)} <span class="mono">(${v})</span></li>`).join("")
+      ? contTop.map(([k,v]) => `<li>${escapeHtml(k)} <span class="mono">(${v})</span></li>`).join("")
       : "<li>-</li>";
 
     $("countryTop10").innerHTML = countryTop.length
-      ? countryTop.map(([k,v])=>`<li>${escapeHtml(k)} <span class="mono">(${v})</span></li>`).join("")
+      ? countryTop.map(([k,v]) => `<li>${escapeHtml(k)} <span class="mono">(${v})</span></li>`).join("")
       : "<li>-</li>";
 
     setStatus(`렌더 완료 ✅ 표시 ${normalized.length}개`);
 
     if(cluster.getLayers().length){
-      map.fitBounds(cluster.getBounds(), {padding:[20,20]});
+      map.fitBounds(cluster.getBounds(), { padding:[20,20] });
     }
   }
 
-  $("btnLoadWorld").addEventListener("click", async ()=>{
+  $("btnLoadWorld").addEventListener("click", async () => {
     try{
       await loadChurchCSVFromURL();
       await loadPopulationCSVFromURL();
@@ -479,23 +633,24 @@
     }
   });
 
-  $("btnSeoulOnly").addEventListener("click", ()=>{
+  $("btnSeoulOnly").addEventListener("click", () => {
     const only = allItems.filter(it => {
       const c = normCity(it.country, it.city);
-      return c.includes("서울") || c.toLowerCase()==="seoul";
+      return c.includes("서울") || c.toLowerCase() === "seoul";
     });
     render(only);
   });
 
-  $("btnShowAll").addEventListener("click", ()=>render(allItems));
+  $("btnShowAll").addEventListener("click", () => render(allItems));
 
-  $("searchForm").addEventListener("submit", (e)=>{
+  $("searchForm").addEventListener("submit", (e) => {
     e.preventDefault();
     render(allItems);
   });
-  $("typeFilter").addEventListener("change", ()=>render(allItems));
 
-  (async ()=>{
+  $("typeFilter").addEventListener("change", () => render(allItems));
+
+  (async () => {
     try{
       await loadChurchCSVFromURL();
       await loadPopulationCSVFromURL();
