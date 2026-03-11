@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>전세계/하나님의교회 세계복음선교협회 현황 지도 (최종 · 모바일 개선)</title>
+  <title>전세계 하나님의교회 세계복음선교협회 현황 지도</title>
 
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -490,7 +490,7 @@
   <header id="pageHeader">
     <div class="topbar">
       <div class="topbar-left">
-        <div class="title">전세계/서울 교회 현황 지도 v3</div>
+        <div class="title">전세계 하나님의교회 세계복음선교협회 현황 지도</div>
         <div class="small" id="status">대기 중…</div>
       </div>
       <div class="topbar-right">
@@ -519,7 +519,7 @@
         <select id="typeFilter">
           <option value="all" selected>전체 유형</option>
           <option value="new">새성전</option>
-          <option value="hall">현당/헌당</option>
+          <option value="hall">헌당</option>
           <option value="church">교회</option>
         </select>
 
@@ -545,7 +545,7 @@
         <div class="card">
           <div class="cardTitle">📊 통계 <span class="chip mono" id="chipValid">valid 0</span></div>
           <div class="small" id="statText">데이터 로딩 후 계산됩니다.</div>
-          <div class="small mono" id="typeCounts">새성전 0 / 현당 0 / 교회 0</div>
+          <div class="small mono" id="typeCounts">새성전 0 / 헌당 0 / 교회 0</div>
         </div>
 
         <div class="card">
@@ -572,7 +572,7 @@
       <div id="map"></div>
       <div class="mapLegend" aria-label="legend">
         <div class="legendItem">🔴 새성전 <span class="legendCount" id="legendNew">0</span></div>
-        <div class="legendItem">🔵 현당/헌당 <span class="legendCount" id="legendHall">0</span></div>
+        <div class="legendItem">🔵 헌당 <span class="legendCount" id="legendHall">0</span></div>
         <div class="legendItem">🟡 교회 <span class="legendCount" id="legendChurch">0</span></div>
       </div>
     </div>
@@ -596,8 +596,8 @@
 <script>
   const $ = id => document.getElementById(id);
 
-  const CHURCH_CSV_URL = "/Church-of-God-Map/data/churches.csv";
-  const POP_CSV_URL    = "/Church-of-God-Map/data/population.csv";
+  const CHURCH_CSV_URL = "data/churches.csv";
+  const POP_CSV_URL    = "data/population.csv";
 
   const POP_RATE = 0.01;
   const CAPITAL_CITIES = new Set(["서울","서울특별시","경기","경기도","인천","인천광역시"]);
@@ -627,6 +627,31 @@
       .trim();
   }
 
+  function normCountry(country){
+    let c = normText(country);
+    const low = c.toLowerCase();
+
+    if(
+      low === "south korea" ||
+      low === "korea, republic of" ||
+      low === "republic of korea" ||
+      c === "대한민국"
+    ){
+      return "South Korea";
+    }
+
+    if(
+      low === "united states" ||
+      low === "united states of america" ||
+      low === "usa" ||
+      low === "u.s.a."
+    ){
+      return "United States";
+    }
+
+    return c;
+  }
+
   function normCity(country, city){
     const ctry = String(country || "").trim().toLowerCase();
     let c = normText(city);
@@ -647,13 +672,14 @@
   }
 
   function getRegionLabel(country, city, district){
-    const cityNorm = normCity(country, city);
+    const countryNorm = normCountry(country);
+    const cityNorm = normCity(countryNorm, city);
     const distNorm = normDistrict(district);
     return [cityNorm, distNorm].filter(Boolean).join(" ");
   }
 
   function isCapitalArea(countryRaw, cityRaw){
-    const country = String(countryRaw || "").trim().toLowerCase();
+    const country = normCountry(countryRaw).toLowerCase();
     const city = String(cityRaw || "").trim();
     const isKorea = country.includes("korea") || country.includes("대한민국");
     if(!isKorea) return false;
@@ -741,7 +767,7 @@
   }
 
   function popKey(country, city, district){
-    const ctry = normText(country);
+    const ctry = normCountry(country);
     const cty  = normCity(ctry, normText(city));
     const dist = normDistrict(district);
     return `${ctry}|${cty}|${dist}`;
@@ -796,7 +822,7 @@
 
     items.forEach(it => {
       const continent = normText(it.continent || "");
-      const country = normText(it.country || "");
+      const country = normCountry(it.country || "");
       const region = getRegionLabel(it.country, it.city, it.district);
 
       if(continent) continentSet.add(continent);
@@ -954,15 +980,15 @@
         (st.includes("현당") || st.includes("헌당")) ? "hall" :
         "church";
 
-      const cityNorm = normCity(it.country, it.city);
+      const countryNorm = normCountry(it.country || "");
+      const cityNorm = normCity(countryNorm, it.city);
       const districtNorm = normDistrict(it.district || "");
-      const key = popKey(it.country, it.city, it.district);
+      const key = popKey(countryNorm, it.city, it.district);
       const population = populationMap.get(key) ?? null;
-      const capital = isCapitalArea(it.country, cityNorm);
+      const capital = isCapitalArea(countryNorm, cityNorm);
       const needChurches = population ? calcNeedChurchesFromPopulation(population, capital) : 0;
       const churchCount = Number(String(it["교회수"] || "1").replace(/,/g, "")) || 1;
       const continentNorm = normText(it.continent || "");
-      const countryNorm = normText(it.country || "");
       const regionLabel = [cityNorm, districtNorm].filter(Boolean).join(" ");
 
       return {
@@ -1103,7 +1129,7 @@
     $("legendChurch").textContent = String(cChurch);
 
     $("chipValid").textContent = `valid ${normalized.length}`;
-    $("typeCounts").textContent = `새성전 ${cNew} / 현당 ${cHall} / 교회 ${cChurch}`;
+    $("typeCounts").textContent = `새성전 ${cNew} / 헌당 ${cHall} / 교회 ${cChurch}`;
     $("sideMeta").textContent = `${normalized.length}개`;
     $("perfText").textContent = `rows: ${items.length} / 표시: ${normalized.length} / 인구매칭: ${matchedPop}`;
     $("statText").textContent =
@@ -1159,7 +1185,7 @@
 
   $("btnSeoulOnly").addEventListener("click", () => {
     const only = allItems.filter(it => {
-      const c = normCity(it.country, it.city);
+      const c = normCity(normCountry(it.country), it.city);
       return c.includes("서울") || c.toLowerCase() === "seoul";
     });
     render(only);
